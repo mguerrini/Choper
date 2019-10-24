@@ -1,0 +1,2 @@
+# Choper
+Chopera automática 
