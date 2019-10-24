@@ -3,22 +3,22 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain;
+package choper.domain.moneyReaders;
 
 /**
  *
  * @author max22
  */
-public class SmartCardReaderProvider
+public class MoneyReaderMachineProvider
 {
-    public  static SmartCardReaderProvider Instance = new   SmartCardReaderProvider();
+    public  static MoneyReaderMachineProvider Instance = new   MoneyReaderMachineProvider();
     
-    private SmartCardReader SingleInstance;
+    private MoneyReaderMachine SingleInstance;
     
-    public SmartCardReader Get()
+    public MoneyReaderMachine Get()
     {
         if (this.SingleInstance == null)
-            this.SingleInstance = new SmartCardReader();
+            this.SingleInstance = new MoneyReaderMachine();
         
         return this.SingleInstance;
     }

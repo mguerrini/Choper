@@ -3,15 +3,19 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain.SerialComm;
+package choper.platform.serialComm;
 
 import choper.platform.events.EventArgs;
+import jssc.SerialPort;
+import jssc.SerialPortEvent;
 
 /**
  *
  * @author max22
  */
-public class SerialChannelEventArgs extends EventArgs
+public class SerialChannelListenerEventArgs extends EventArgs
 {
-    public  byte[] Data;
+    public SerialPortEvent Data;
+
+    public SerialPort SerialPort;
 }

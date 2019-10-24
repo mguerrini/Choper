@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain;
+package choper.domain.smartCards;
 
 import choper.platform.events.*;
 import java.lang.reflect.Array;
@@ -42,7 +42,7 @@ public class SmartCardReader
     private CardTerminal ActiveTerminal;
 
     // <editor-fold defaultstate="collapsed" desc="-- Open / Close --">
-    public void Start()
+    public void Connect()
     {
         if (this.IsStarted)
         {
@@ -54,7 +54,7 @@ public class SmartCardReader
         this.Worker.start();
     }
 
-    public void Stop()
+    public void Disconnect()
     {
         if (!this.IsStarted)
         {
@@ -142,11 +142,7 @@ public class SmartCardReader
 
             this.ActiveTerminal = terminal;
 
-            //CommandAPDU cmd = new CommandAPDU(255, 164, 0, 0, 6);
-            //byte[] cmdData = new byte[]{Integer.parseInt("FF", 16), 0xA4, 0x00, 0x00,  0x01, 0x06};
-            //CommandAPDU cmd = new CommandAPDU(0xFF, 0xA4, 0x00, 0x00, 0x06, 0x01);
-            
-            //byte[] b =cmd.getBytes();
+            //Comando de seleccion de tarjeta
             CommandAPDU cmd = new CommandAPDU(
                     Integer.parseUnsignedInt("FF", 16),
                     Integer.parseUnsignedInt("A4", 16),
@@ -186,6 +182,11 @@ public class SmartCardReader
     public Card GetActiveCard()
     {
         return this.ActiveCard;
+    }
+    
+    public boolean IsCardPresent()
+    {
+        return this.IsCardPresent;
     }
 
     public boolean SetBalance(float amount)

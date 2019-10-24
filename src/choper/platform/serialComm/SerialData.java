@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain.SerialComm;
+package choper.platform.serialComm;
 
 import com.pi4j.io.serial.Serial;
 import java.util.concurrent.locks.Condition;
