@@ -35,7 +35,6 @@ public class BillAndCardManager
 
     public boolean AutoAcceptReject = true;
 
-    
     public void Open()
     {
         this.CardReader = SmartCardReaderProvider.Instance.Get();
@@ -76,7 +75,14 @@ public class BillAndCardManager
             this.WriteLine("Card Inserted");
             float money = this.CardReader.GetBalance();
             this.WriteLine("Card Inserted - Saldo: " + money);
-        } catch (Exception ex)
+
+            if (this.AutoAcceptReject)
+            {
+                this.MustAccept = true;
+            }
+
+        }
+        catch (Exception ex)
         {
             this.WriteLine("Get Balance Error");
             this.WriteLine(ex);
@@ -85,7 +91,11 @@ public class BillAndCardManager
 
     private void OnCardRemoved(Object source, EventArgs args)
     {
-        this.WriteLine("Card Inserted");
+        this.WriteLine("Card Removed");
+        if (this.AutoAcceptReject)
+        {
+            this.MustAccept = false;
+        }
     }
 
     private void OnBalanceChanged(Object source, EventArgs args)
@@ -95,7 +105,8 @@ public class BillAndCardManager
             this.WriteLine("Balance changed");
             float money = this.CardReader.GetBalance();
             this.WriteLine("Balance changed - Saldo: " + money);
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             this.WriteLine("Get Balance Error");
             this.WriteLine(ex);
@@ -104,7 +115,19 @@ public class BillAndCardManager
 
     private void OnBillDataReceived(Object source, MoneyReaderMachineDataReceivedEventArgs args)
     {
-        this.WriteLine("BV20 event received: " + args.Data);
+        String b = "";
+
+        for (int i = 0; i < args.Data.length; i++)
+        {
+            int v = args.Data[i];
+            if (args.Data[i] < 0)
+            {
+                v = -v + 127;
+            }
+            b += v + " ";
+        }
+
+        this.WriteLine("BV20: " + args.Description);
     }
 
     private void OnBillTicketReady(Object source, Integer bill)
@@ -117,11 +140,14 @@ public class BillAndCardManager
             {
                 boolean b = this.BillReader.Accept();
                 this.WriteLine("Command Accepted - Executed: " + b);
-            } else
+            }
+            else
             {
                 boolean b = this.BillReader.Reject();
                 this.WriteLine("Command Reject - Executed: " + b);
             }
+
+            this.MustAccept = !this.MustAccept;
         }
     }
 
@@ -130,13 +156,15 @@ public class BillAndCardManager
         this.WriteLine("BV20 ticket accepted: " + bill);
 
         boolean addBal = this.CardReader.AddBalance(bill);
+        float balance = this.CardReader.GetBalance();
 
         if (addBal)
         {
-            this.WriteLine("Add Balance success");
-        } else
+            this.WriteLine("Add Balance success - Saldo: " + balance);
+        }
+        else
         {
-            this.WriteLine("Add Balance failed");
+            this.WriteLine("Add Balance failed - Saldo: " + balance);
         }
 
     }
@@ -146,57 +174,59 @@ public class BillAndCardManager
         this.WriteLine("BV20 ticket rejected: " + bill);
     }
 
-    private void ListeInputs()
+    public void StartListenCommands()
     {
         String input = "";
 
-        Runnable runnableTask = () ->
+        while (!input.equalsIgnoreCase("q"))
         {
-            while (input.equalsIgnoreCase("q"))
+
+            try
             {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+                String name = reader.readLine();
+                System.out.println("Command: " + name);
 
-                try
+                if (name.equalsIgnoreCase("q"))
                 {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                    String name = reader.readLine();
-                    System.out.println("Command: " + name);
-
-                    if (name.equalsIgnoreCase("q"))
+                    System.out.println("Quit");
+                }
+                else if (name.equalsIgnoreCase("a"))
+                {
+                    if (this.AutoAcceptReject)
                     {
-                        System.out.println("Quit");
-                    } else if (name.equalsIgnoreCase("a"))
-                    {
-                        if (this.AutoAcceptReject)
-                        {
-                            this.MustAccept = true;
-                        } else
-                        {
-                            boolean b = this.BillReader.Accept();
-                            this.WriteLine("Command Accepted - Executed: " + b);
-                        }
-                    } else if (name.equalsIgnoreCase("r"))
-                    {
-                        if (this.AutoAcceptReject)
-                        {
-                            this.MustAccept = false;
-                        } else
-                        {
-                            boolean b = this.BillReader.Reject();
-                            this.WriteLine("Command Reject - Executed: " + b);
-                        }
-                    } else if (name.equalsIgnoreCase("auto"))
-                    {
-                        this.AutoAcceptReject = !this.AutoAcceptReject;
-                        this.WriteLine("Auto accept/reject bill: " + this.AutoAcceptReject);
+                        this.MustAccept = true;
                     }
-                } catch (IOException ex)
+                    else
+                    {
+                        boolean b = this.BillReader.Accept();
+                        this.WriteLine("Command Accepted - Executed: " + b);
+                    }
+                }
+                else if (name.equalsIgnoreCase("r"))
                 {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                    if (this.AutoAcceptReject)
+                    {
+                        this.MustAccept = false;
+                    }
+                    else
+                    {
+                        boolean b = this.BillReader.Reject();
+                        this.WriteLine("Command Reject - Executed: " + b);
+                    }
+                }
+                else if (name.equalsIgnoreCase("auto"))
+                {
+                    this.AutoAcceptReject = !this.AutoAcceptReject;
+                    this.WriteLine("Auto accept/reject bill: " + this.AutoAcceptReject);
                 }
             }
-        };
+            catch (IOException ex)
+            {
+                System.out.println(ex);
+            }
+        }
 
-        CompletableFuture.runAsync(runnableTask);
     }
 
     public void WriteLine(Object msg)

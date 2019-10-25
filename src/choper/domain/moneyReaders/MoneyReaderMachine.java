@@ -62,9 +62,15 @@ public class MoneyReaderMachine
             this.Channel = new SerialChannel(port);
             this.Channel.Open();
 
-            //this.Channel.DataReceived.Subscribe(this::OnDataReceived);
+            System.out.println("MoneyReaderMachine - Connected.");
+            boolean escrowEnabled = this.EnableEscrow(true);
+            System.out.println("MoneyReaderMachine - Escrow enabled?: " + escrowEnabled);
+
+            this.Channel.DataReceived.Subscribe(this::OnDataReceived);
+
             return true;
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             System.out.println(ex);
             return false;
@@ -73,7 +79,60 @@ public class MoneyReaderMachine
 
     public void Disconnect()
     {
+        SerialChannel ch = this.Channel;
+        if (ch != null)
+        {
+            ch.Close();
+        }
+        this.Channel = null;
+    }
 
+    private boolean IsEnabled;
+
+    public boolean Enabled()
+    {
+        try
+        {
+            byte[] res = this.Channel.SendDataSync(4000, this.CreateData(184), 1);
+            if (res != null && res.length > 0 && res[0] == (byte) 184)
+            {
+                this.IsEnabled = true;
+            }
+            else
+            {
+                this.IsEnabled = false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.out.println(ex);
+            return false;
+        }
+    }
+
+    public boolean Disabled()
+    {
+        try
+        {
+            byte[] res = this.Channel.SendDataSync(4000, this.CreateData(185), 1);
+            if (res != null && res.length > 0 && res[0] == (byte) 185)
+            {
+                this.IsEnabled = false;
+            }
+            else
+            {
+                this.IsEnabled = true;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            System.out.println(ex);
+            return false;
+        }
     }
 
     public String FindPort()
@@ -102,10 +161,12 @@ public class MoneyReaderMachine
                 {
                     return p;
                 }
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 System.out.println(ex);
-            } finally
+            }
+            finally
             {
                 if (ch != null)
                 {
@@ -127,7 +188,8 @@ public class MoneyReaderMachine
             result.forEach(System.out::println);
             return result;
 
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             System.out.println(e.getMessage());
             return new ArrayList<String>();
@@ -143,16 +205,18 @@ public class MoneyReaderMachine
         try
         {
             byte[] res = this.Channel.SendDataSync(4000, this.CreateData(172), 1);
-            if (res != null && res.length > 0 && res[0] == 172)
+            if (res != null && res.length > 0 && res[0] == (byte) 172)
             {
                 this.IsTicketAccepted = true;
                 return true;
-            } else
+            }
+            else
             {
                 this.IsTicketAccepted = false;
                 return false;
             }
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             throw ex;
         }
@@ -165,14 +229,17 @@ public class MoneyReaderMachine
             byte[] res = this.Channel.SendDataSync(2000, this.CreateData(173), 1);
             this.IsTicketAccepted = false;
 
-            if (res != null && res.length > 0 && res[0] == 173)
+            if (res != null && res.length > 0 && res[0] == (byte) 173)
             {
+                this.RaiseTicketRejected(this.CurrentTicket);
                 return true;
-            } else
+            }
+            else
             {
                 return false;
             }
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             throw ex;
         }
@@ -186,24 +253,27 @@ public class MoneyReaderMachine
             if (enabled)
             {
                 res = this.Channel.SendDataSync(2000, this.CreateData(170), 1);
-            } else
+            }
+            else
             {
                 res = this.Channel.SendDataSync(2000, this.CreateData(171), 1);
             }
 
             if (res != null && res.length > 0)
             {
-                if (res[0] == 170)
+                if (res[0] == (byte) 170)
                 {
                     this.IsEscrowEnabled = true;
-                } else
+                }
+                else
                 {
                     this.IsEscrowEnabled = false;
                 }
             }
 
             return this.IsEscrowEnabled;
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             throw ex;
         }
@@ -216,14 +286,16 @@ public class MoneyReaderMachine
             byte[] res = null;
             res = this.Channel.SendDataSync(2000, this.CreateData(182), 4);
 
-            if (res != null && res.length == 4 && res[0] == 182)
+            if (res != null && res.length == 4 && res[0] == (byte) 182)
             {
                 return res;
-            } else
+            }
+            else
             {
                 return null;
             }
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             throw ex;
         }
@@ -263,37 +335,37 @@ public class MoneyReaderMachine
             case 20:
                 //billete no reconocido
                 //this.Logger.Debug("Código {0} - Billete no reconido.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Billete no reconocido.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Billete no reconocido.");
                 break;
             case 30:
                 //Mecanismo en funcionamiento lento
                 //this.Logger.Debug("Código {0} - Mecanismo en funcionamiento lento.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Mecanismo en funcionamiento lento.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Mecanismo en funcionamiento lento.");
                 break;
             case 40:
                 //Intento de pesca
                 //this.Logger.Debug("Código {0} - Intento de pesca.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Intento de pesca.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Intento de pesca.");
                 break;
             case 50:
                 //Billete rechazado
                 //this.Logger.Debug("Código {0} - Billete rechazado.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Billete rechazado.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Billete rechazado.");
                 break;
             case 60:
                 //APILADOR lleno o atascado
                 //this.Logger.Debug("Código {0} - APILADOR lleno o atascado.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - APILADOR lleno o atascado.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - APILADOR lleno o atascado.");
                 break;
             case 70:
                 //Cancelación durante escrow
                 //this.Logger.Debug("Código {0} - Cancelación durante escrow.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Cancelación durante escrow.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Cancelación durante escrow.");
                 break;
             case 80:
                 //el billete pudo haberse retirado para solucionar atasco
                 //this.Logger.Debug("Código {0} - El billete pudo haberse retirado para solucionar atasco.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - El billete pudo haberse retirado para solucionar atasco.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - El billete pudo haberse retirado para solucionar atasco.");
                 break;
             case 120:
                 //validador ocupado
@@ -301,11 +373,11 @@ public class MoneyReaderMachine
                 //reseteo todas las variables temporales
                 //this.IsTicketAccepted = false;
                 //this.Logger.Debug("Código {0} - Validador ocupado.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Validador ocupado.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Validador ocupado.");
                 break;
             case 121:
                 //validador no ocupado
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Validador no ocupado.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Validador no ocupado.");
                 //this.Logger.Debug("Código {0} - Validador no ocupado.", data);
 
                 break;
@@ -315,7 +387,7 @@ public class MoneyReaderMachine
                 //this.ResponseSync.Set();
 
                 //this.Logger.Debug("Código {0} - Modo escrow en serie activado.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Activar modo escrow en serie.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Activar modo escrow en serie.");
                 break;
             case (byte) 171:
                 //escrow disabled
@@ -323,36 +395,68 @@ public class MoneyReaderMachine
                 //this.ResponseSync.Set();
 
                 //this.Logger.Debug("Código {0} - Modo escrow en serie desactivado.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Desactivar modo escrow en serie.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Desactivar modo escrow en serie.");
                 break;
             case (byte) 172:
                 //escrow accepted
                 this.IsTicketAccepted = true;
                 //this.Logger.Debug("Código {0} - Escrow aceptado.", data);
-                this.RaiseDataReceived(data, "Código: " + data + " - Escrow aceptado.");
+                this.RaiseDataReceived(data, "Código: " + this.ConvertToString(dataRead) + " - Escrow aceptado.");
                 break;
             case (byte) 173:
                 //escrow rechazado
                 this.IsTicketAccepted = false;
                 //this.Logger.Debug("Código {0} - Escrow rechazado.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Escrow rechazo.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Escrow rechazo.");
                 break;
             case (byte) 182:
                 //resultado de la consulta del estado, son 4 bytes
                 //estado....los siguientes 3 bytes son del estado.
                 //this.ProcessState(data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Status:" + dataRead[1] + " " + dataRead[2] + " " + dataRead[2]);
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Status:" + dataRead[1] + " " + dataRead[2] + " " + dataRead[2]);
                 break;
             case (byte) 255:
                 //error de comando
                 //this.Logger.Debug("Código {0} - Error de comando.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Error de comando.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Error de comando.");
                 break;
             default:
                 //this.Logger.Debug("Código {0} - Código desconocido.", data);
-                this.RaiseDataReceived(dataRead, "Código: " + data + " - Código desconocido.");
+                this.RaiseDataReceived(dataRead, "Código: " + this.ConvertToString(dataRead) + " - Código desconocido.");
                 break;
         }
+    }
+
+    private int[] ConvertToInteger(byte[] data)
+    {
+        int[] b = new int[data.length];
+
+        for (int i = 0; i < data.length; i++)
+        {
+            int v = data[i];
+            if (data[i] < 0)
+            {
+                v = -v + 127;
+            }
+
+            b[i] = v;
+        }
+
+        return b;
+    }
+
+    private String ConvertToString(byte[] data)
+    {
+        int[] v = this.ConvertToInteger(data);
+        String output = "";
+
+        for (int i = 0; i < v.length; i++)
+        {
+            int val = v[i];
+            output += val + " ";
+        }
+
+        return output;
     }
 
     private void OnReceivedBill(byte value)
@@ -362,6 +466,7 @@ public class MoneyReaderMachine
         {
             //lo rechazo
             //this.Logger.Debug("Código de billete: {0} - Rechazado", value);
+            this.CurrentTicket = -1;
             this.Reject();
 
             this.RaiseDataReceived(value, "Código: " + value + " - Billete rechazado. No existe valor asociado al código.");
@@ -375,13 +480,15 @@ public class MoneyReaderMachine
         {
             this.RaiseTicketReady(this.CurrentTicket);
             this.RaiseTicketAccepted(this.CurrentTicket);
-        } else
+        }
+        else
         {
             if (this.IsTicketAccepted)
             {
                 this.IsTicketAccepted = false;
                 this.RaiseTicketAccepted(this.CurrentTicket);
-            } else
+            }
+            else
             {
                 this.RaiseTicketReady(this.CurrentTicket);
             }
@@ -407,8 +514,11 @@ public class MoneyReaderMachine
 
     private void RaiseDataReceived(byte data, String description)
     {
-        byte[] d = new byte[] { data };
-        
+        byte[] d = new byte[]
+        {
+            data
+        };
+
         this.RaiseDataReceived(d, description);
     }
 

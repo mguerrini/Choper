@@ -12,6 +12,7 @@ import choper.domain.*;
 import choper.domain.test.BillAndCardManager;
 import choper.platform.events.*;
 import java.io.BufferedReader;
+import java.io.Console;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -39,6 +40,7 @@ public class Main
      */
     public static void main(String[] args)
     {
+       
         //MoneyReaderMachine reader = MoneyReaderMachineProvider.Instance.Get();
 
         //String port = reader.FindPort();
@@ -49,57 +51,10 @@ public class Main
 
     private static void BillAndCardTest()
     {
-        String input = "";
-                BillAndCardManager mgr = new BillAndCardManager();
+        BillAndCardManager mgr = new BillAndCardManager();
         mgr.Open();
-        
-
-
-            while (input.equalsIgnoreCase("q"))
-            {
-
-                try
-                {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-                    String name = reader.readLine();
-                    System.out.println("Command: " + name);
-
-                    if (name.equalsIgnoreCase("q"))
-                    {
-                        System.out.println("Quit");
-                    } else if (name.equalsIgnoreCase("a"))
-                    {
-                        if (this.AutoAcceptReject)
-                        {
-                            this.MustAccept = true;
-                        } else
-                        {
-                            boolean b = this.BillReader.Accept();
-                            this.WriteLine("Command Accepted - Executed: " + b);
-                        }
-                    } else if (name.equalsIgnoreCase("r"))
-                    {
-                        if (this.AutoAcceptReject)
-                        {
-                            this.MustAccept = false;
-                        } else
-                        {
-                            boolean b = this.BillReader.Reject();
-                            this.WriteLine("Command Reject - Executed: " + b);
-                        }
-                    } else if (name.equalsIgnoreCase("auto"))
-                    {
-                        this.AutoAcceptReject = !this.AutoAcceptReject;
-                        this.WriteLine("Auto accept/reject bill: " + this.AutoAcceptReject);
-                    }
-                } catch (IOException ex)
-                {
-                    Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-
+        mgr.StartListenCommands();
     }
-
 
     private static void ShowSerialPorts()
     {

@@ -90,6 +90,7 @@ public class SerialChannel
     private Object ResponseLocker = new Object();
 
     private TaskQueue ProcessTask = new TaskQueue(this::ProcessDataReceived);
+    private TaskQueue NotifyTask = new TaskQueue(this::NotifyDataReceived);
 
     public Boolean Open()
     {
@@ -98,7 +99,7 @@ public class SerialChannel
             return true;
         }
 
-        System.out.println("Opening serial port");
+        System.out.println("Serial port: " + this.PortNumber + " opening.");
 
         SerialPort serialPort = new SerialPort(this.PortNumber);
         try
@@ -115,8 +116,11 @@ public class SerialChannel
 
             this.Serial = serialPort;
 
+            System.out.println("Serial port: " + this.PortNumber + " opened.");
+
             return true;
-        } catch (SerialPortException ex)
+        }
+        catch (SerialPortException ex)
         {
             if (this.Listener != null)
             {
@@ -135,7 +139,8 @@ public class SerialChannel
             try
             {
                 this.Serial.closePort();
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
             }
 
@@ -228,7 +233,8 @@ public class SerialChannel
             {
                 this.Serial.writeBytes(data);
             }
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             System.out.println(ex);
 
@@ -246,7 +252,8 @@ public class SerialChannel
         try
         {
             this.Serial.writeBytes(sc.Data);
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             System.out.println(ex);
             sc.Error = ex;
@@ -266,7 +273,8 @@ public class SerialChannel
                     sc.IsTimeout = true;
                 }
             }
-        } catch (InterruptedException e)
+        }
+        catch (InterruptedException e)
         {
             sc.IsTimeout = true;
         }
@@ -292,7 +300,8 @@ public class SerialChannel
             {
                 this.Serial.writeBytes(sc.Data);
             }
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             System.out.println(ex);
             sc.Error = ex;
@@ -317,30 +326,36 @@ public class SerialChannel
                 byte buffer[] = args.SerialPort.readBytes(count, 2000);
                 this.ProcessTask.Enqueue(buffer);
 
-            } catch (SerialPortException ex)
+            }
+            catch (SerialPortException ex)
             {
                 System.out.println(ex);
-            } catch (SerialPortTimeoutException tex)
+            }
+            catch (SerialPortTimeoutException tex)
             {
                 System.out.println(tex);
             }
-        } else if (event.isCTS())
+        }
+        else if (event.isCTS())
         {
             //If CTS line has changed state
             if (event.getEventValue() == 1)
             {//If line is ON
                 System.out.println("CTS - ON");
-            } else
+            }
+            else
             {
                 System.out.println("CTS - OFF");
             }
-        } else if (event.isDSR())
+        }
+        else if (event.isDSR())
         {
             ///If DSR line has changed state
             if (event.getEventValue() == 1)
             {//If line is ON
                 System.out.println("DSR - ON");
-            } else
+            }
+            else
             {
                 System.out.println("DSR - OFF");
             }
@@ -403,23 +418,47 @@ public class SerialChannel
                     }
 
                     return;
-                } else
+                }
+                else
                 {
                     return;
                 }
-            } else
-            {
-                sd.Response = bytesRead;
-                sd.notify();
-
-                this.RaiseDataReceived(bytesRead);
             }
-        } else
+            else
+            {
+                this.CurrentText.clear();
+                sd.Data = new byte[]
+                {
+                    bytesRead[0]
+                };
+
+                synchronized (this.ResponseLocker)
+                {
+                    this.ResponseLocker.notify();
+                }
+
+                if (bytesRead.length > 1)
+                {
+                    byte[] newRead = new byte[bytesRead.length - 1];
+                    for (int i = 1; i < bytesRead.length; i++)
+                    {
+                        newRead[i - 1] = bytesRead[i];
+                    }
+
+                    this.RaiseDataReceived(bytesRead);
+                }
+            }
+        }
+        else
         {
-
             this.CurrentText.clear();
-
-            this.RaiseDataReceived(bytesRead);
+            for (int i = 0; i < bytesRead.length; i++)
+            {
+                this.RaiseDataReceived(new byte[]
+                {
+                    bytesRead[i]
+                });
+            }
         }
 
     }
@@ -427,6 +466,26 @@ public class SerialChannel
     private void RaiseDataReceived(byte[] receivedDataBytes)
     {
         //el listener es asincronico
-        ((Event) this.DataReceived).Invoke(this, receivedDataBytes);
+        this.NotifyTask.Enqueue(receivedDataBytes);
     }
+
+    private void NotifyDataReceived(Object context, Object data)
+    {
+
+        if (data == null)
+        {
+            return;
+        }
+
+        byte[] bytesRead = (byte[]) data;
+
+        if (bytesRead == null || bytesRead.length == 0)
+        {
+            return;
+        }
+
+        //el listener es asincronico
+        ((Event) this.DataReceived).Invoke(this, bytesRead);
+    }
+
 }

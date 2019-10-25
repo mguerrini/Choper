@@ -40,7 +40,8 @@ public class SmartCardReader
     private boolean IsCardPresent = false;
     private Card ActiveCard;
     private CardTerminal ActiveTerminal;
-
+    private Float CurrentBalance;
+    
     // <editor-fold defaultstate="collapsed" desc="-- Open / Close --">
     public void Connect()
     {
@@ -77,15 +78,22 @@ public class SmartCardReader
     {
         TerminalFactory factory = TerminalFactory.getDefault();
         CardTerminals terminals = factory.terminals();
+        boolean isFirstTime = true;
+        boolean changed = false;
 
         while (!this.StopRequest)
         {
             try
             {
-                boolean changed = terminals.waitForChange(10000);
-                if (!changed)
+                if (!isFirstTime)
                 {
-                    continue;
+                    Thread.sleep(500);
+                    //changed = terminals.waitForChange(50000);
+
+                    //if (!changed)
+                    //{
+                    //    continue;
+                    //}
                 }
 
                 List<CardTerminal> listTerms = terminals.list();
@@ -93,29 +101,36 @@ public class SmartCardReader
                 if (listTerms.size() == 0)
                 {
                     System.out.println("No hay Lectoras de tarjetas conectadas...");
-                    continue;
-                }
-
-                //obtengo la lectora
-                CardTerminal terminal = listTerms.get(0);
-
-                if (this.IsCardPresent == terminal.isCardPresent())
-                {
-                    continue;
-                }
-
-                this.IsCardPresent = terminal.isCardPresent();
-
-                if (this.IsCardPresent)
-                {
-                    this.OnCardInserted(terminal);
                 }
                 else
                 {
-                    this.OnCardRemoved(terminal, this.ActiveCard);
+                    //obtengo la lectora
+                    CardTerminal terminal = listTerms.get(0);
+
+                    if (this.IsCardPresent != terminal.isCardPresent() || isFirstTime)
+                    {
+                        this.IsCardPresent = terminal.isCardPresent();
+
+                        if (this.IsCardPresent)
+                        {
+                            this.OnCardInserted(terminal);
+                        }
+                        else
+                        {
+                            if (!isFirstTime)
+                            {
+                                this.OnCardRemoved(terminal, this.ActiveCard);
+                            }
+                        }
+                        isFirstTime = false;
+                    }
                 }
             }
             catch (CardException ex)
+            {
+                Logger.getLogger(SmartCardReader.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            catch (InterruptedException ex)
             {
                 Logger.getLogger(SmartCardReader.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -133,12 +148,13 @@ public class SmartCardReader
             ATR atr = this.ActiveCard.getATR();
             byte[] atrb = atr.getBytes();
 
-            System.out.print("ATR ");
+            String atrStr = "";
             for (byte b : atrb)
             {
-                System.out.print(String.format("%02X ", b));
+                atrStr += String.format("%02X ", b);
             }
-            System.out.println();
+
+            System.out.println("ATR " + atrStr);
 
             this.ActiveTerminal = terminal;
 
@@ -148,14 +164,29 @@ public class SmartCardReader
                     Integer.parseUnsignedInt("A4", 16),
                     Integer.parseUnsignedInt("00", 16),
                     Integer.parseUnsignedInt("00", 16),
-                    new byte[] {Byte.parseByte("06", 16)},
+                    new byte[]
+                    {
+                        Byte.parseByte("06", 16)
+                    },
                     Integer.parseUnsignedInt("01", 16)
             );
 
             System.out.println("Selecting Card Type - Cmd: FF A4 00 00 06");
             ResponseAPDU res = this.ActiveCard.getBasicChannel().transmit(cmd);
             System.out.println("Selecting Card Type - SW1: " + res.getSW1() + ", SW2: " + res.getSW2());
-            ((Event<EventArgs>) this.CardInserted).Invoke(this, EventArgs.Empty());
+
+            boolean pin = this.VerifyPIN("FF", "FF", "FF");
+            if (pin)
+            {
+                this.CurrentBalance = this.DoGetBalance();
+                
+                ((Event<EventArgs>) this.CardInserted).Invoke(this, EventArgs.Empty());
+            }
+            else
+            {
+                System.out.println("Verify Pin Failed: Disconnecting...");
+                this.ActiveCard.disconnect(true);
+            }
         }
         catch (Exception ex)
         {
@@ -171,7 +202,7 @@ public class SmartCardReader
             System.out.println("Tarjeta removida: " + terminal.getName());
             activeCard.disconnect(true);
 
-            ((Event<EventArgs>) this.CardInserted).Invoke(this, EventArgs.Empty());
+            ((Event<EventArgs>) this.CardRemoved).Invoke(this, EventArgs.Empty());
         }
         catch (Exception ex)
         {
@@ -183,7 +214,7 @@ public class SmartCardReader
     {
         return this.ActiveCard;
     }
-    
+
     public boolean IsCardPresent()
     {
         return this.IsCardPresent;
@@ -191,12 +222,18 @@ public class SmartCardReader
 
     public boolean SetBalance(float amount)
     {
+        if (this.ActiveCard == null)
+        {
+            return false;
+        }
+
+        /*
         boolean pin = this.VerifyPIN("FF", "FF", "FF");
         if (!pin)
         {
             return false;
         }
-
+         */
         Card card = this.ActiveCard;
         CardTerminal terminal = this.ActiveTerminal;
 
@@ -233,11 +270,46 @@ public class SmartCardReader
 
     public boolean AddBalance(float amount)
     {
+        if (this.ActiveCard == null)
+        {
+            return false;
+        }
+
         try
         {
             float val = this.GetBalance();
             val = val + amount;
-            return this.SetBalance(val);
+            boolean output = this.SetBalance(val);
+            
+            if (output)
+                this.CurrentBalance = val;
+            
+            return output;
+        }
+        catch (Exception ex)
+        {
+            Logger.getLogger(SmartCardReader.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+    }
+    
+        public boolean SubtractBalance(float amount)
+    {
+        if (this.ActiveCard == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            float val = this.GetBalance();
+            val = val - amount;
+              boolean output = this.SetBalance(val);
+            
+            if (output)
+                this.CurrentBalance = val;
+            
+            return output;
         }
         catch (Exception ex)
         {
@@ -246,14 +318,25 @@ public class SmartCardReader
         }
     }
 
-    public float GetBalance() throws Exception
+    public float GetBalance()
     {
+        return this.CurrentBalance;
+    }
+        
+    private float DoGetBalance() throws Exception
+    {
+        if (this.ActiveCard == null)
+        {
+            throw new Exception("Operacón inválida - No hay SmartCard conectada.");
+        }
+
+        /*
         boolean pin = this.VerifyPIN("FF", "FF", "FF");
         if (!pin)
         {
             return 0;
         }
-
+         */
         try
         {
             //POSICION DE MEMORIA 32, 5 BYTES
@@ -315,7 +398,6 @@ public class SmartCardReader
 
     protected boolean VerifyPIN(String p1, String p2, String p3)
     {
-
         byte[] pins = new byte[3];
         pins[0] = (byte) Integer.parseUnsignedInt(p1, 16);
         pins[1] = (byte) Integer.parseUnsignedInt(p2, 16);
@@ -330,9 +412,9 @@ public class SmartCardReader
                     Integer.parseUnsignedInt("00", 16),
                     pins);
 
-            System.out.println("Reading Card - Cmd: FF B0 00 20 05");
+            System.out.println("VerifyPIN - Cmd: FF 20 00 00 CODE");
             ResponseAPDU res = this.ActiveCard.getBasicChannel().transmit(cmd);
-            System.out.println("Reading Card  - SW1: " + res.getSW1() + ", SW2: " + res.getSW2());
+            System.out.println("VerifyPIN  - SW1: " + res.getSW1() + ", SW2: " + res.getSW2());
 
             return res.getSW1() == 144 && res.getSW2() == 7;
         }
