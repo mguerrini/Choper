@@ -10,7 +10,11 @@ import choper.domain.moneyReaders.MoneyReaderMachine;
 import choper.domain.smartCards.SmartCardReader;
 import choper.domain.*;
 import choper.domain.test.BillAndCardManager;
+import choper.domain.test.FlowSensorTest;
+import choper.domain.test.LcdTest;
 import choper.platform.events.*;
+import com.pi4j.io.i2c.I2CFactory;
+import com.pi4j.platform.PlatformAlreadyAssignedException;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.File;
@@ -40,13 +44,36 @@ public class Main
      */
     public static void main(String[] args)
     {
-       
-        //MoneyReaderMachine reader = MoneyReaderMachineProvider.Instance.Get();
 
-        //String port = reader.FindPort();
-        //ShowSerialPorts();
-        
-        BillAndCardTest();
+        try
+        {
+            //MoneyReaderMachine reader = MoneyReaderMachineProvider.Instance.Get();
+
+            //ShowSerialPorts();
+            //BillAndCardTest();
+            //TestLcd();
+
+            FlowSensorTest();
+        }
+        catch (Exception ex)
+        {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static void FlowSensorTest() throws InterruptedException
+    {
+        FlowSensorTest t = new FlowSensorTest();
+        t.Setup();
+
+        t.Start();
+    }
+
+    private static void TestLcd() throws Exception
+    {
+        LcdTest t = new LcdTest();
+        t.Test2();
+
     }
 
     private static void BillAndCardTest()
@@ -64,7 +91,8 @@ public class Main
             List<String> result = walk.map(x -> x.toString()).collect(Collectors.toList());
             result.forEach(System.out::println);
 
-        } catch (IOException e)
+        }
+        catch (IOException e)
         {
             e.printStackTrace();
         }
@@ -96,7 +124,8 @@ public class Main
             reader.SetBalance(58);
             float val = reader.GetBalance();
             System.out.println("Card Inserted...Valor leido = " + val);
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }

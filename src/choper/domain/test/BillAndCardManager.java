@@ -9,6 +9,8 @@ import choper.Main;
 import choper.domain.moneyReaders.*;
 import choper.domain.smartCards.*;
 import choper.platform.events.EventArgs;
+import com.pi4j.component.lcd.impl.GpioLcdDisplay;
+import com.pi4j.wiringpi.Lcd;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

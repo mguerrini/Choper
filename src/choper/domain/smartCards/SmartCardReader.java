@@ -90,10 +90,10 @@ public class SmartCardReader
                     Thread.sleep(500);
                     //changed = terminals.waitForChange(50000);
 
-                    //if (!changed)
-                    //{
-                    //    continue;
-                    //}
+                    if (!changed)
+                    {
+                        continue;
+                    }
                 }
 
                 List<CardTerminal> listTerms = terminals.list();
