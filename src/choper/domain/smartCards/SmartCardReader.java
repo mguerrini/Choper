@@ -1,7 +1,7 @@
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ 0* and open the template in the editor.
  */
 package choper.domain.smartCards;
 
@@ -93,12 +93,6 @@ public class SmartCardReader implements ISmartCardReader
                 if (!isFirstTime)
                 {
                     Thread.sleep(500);
-                    //changed = terminals.waitForChange(50000);
-
-                    if (!changed)
-                    {
-                        continue;
-                    }
                 }
 
                 List<CardTerminal> listTerms = terminals.list();

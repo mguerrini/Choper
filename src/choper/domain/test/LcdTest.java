@@ -80,14 +80,15 @@ public class LcdTest
     public void Test2() throws InterruptedException
     {
        try {
-            I2CWiringpiLCD display = new    I2CWiringpiLCD();
+            I2CWiringpiLCD display = new I2CWiringpiLCD();
             
             display.init();
             display.backlight(true);
+            display.clear();
             display.display_string_pos("Hola Helena!", 1, 2);
             //display.backlight(false);
         } catch (Exception ex) {
-            System.out.println(ex.toString());
+            System.out.println(ex);
         }
        Thread.sleep(30000);
         /*

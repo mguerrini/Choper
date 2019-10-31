@@ -54,34 +54,42 @@ public class ConfigurationProvider
         return _properties;
     }
 
-    public int GetInt(String key)
+    public Integer GetInt(String key)
     {
-        return (int) this.GetProperties().get(key);
+        if (this.GetProperties().containsKey(key))
+        {
+            String val = this.GetProperties().get(key).toString();
+            return Integer.parseInt(val);
+        }
+        else
+        {
+            return null;
+        }
     }
 
-    public int GetInt(String modulo, String key)
+    public Integer GetInt(String modulo, String key)
     {
         return this.GetInt(modulo + "." + key);
     }
 
-    public int GetInt(Class modulo, String key)
+    public Integer GetInt(Class modulo, String key)
     {
-        return this.GetInt(modulo.getName() + "." + key);
+        return this.GetInt(this.getClassName(modulo) + "." + key);
     }
 
-    public int GetInt(String modulo, String key, String subKey)
+    public Integer GetInt(String modulo, String key, String subKey)
     {
         return this.GetInt(modulo + "." + key + "_" + subKey);
     }
 
-    public int GetInt(Class modulo, String key, String subKey)
+    public Integer GetInt(Class modulo, String key, String subKey)
     {
-        return this.GetInt(modulo.getName() + "." + key + "_" + subKey);
+        return this.GetInt(this.getClassName(modulo) + "." + key + "_" + subKey);
     }
 
     public String GetString(String key)
     {
-        return (String) this.GetProperties().get(key);
+        return this.GetProperties().get(key).toString();
     }
 
     public String GetString(String modulo, String key)
@@ -91,7 +99,7 @@ public class ConfigurationProvider
 
     public String GetString(Class modulo, String key)
     {
-        return this.GetString(modulo.getName() + "." + key);
+        return this.GetString(this.getClassName(modulo) + "." + key);
     }
 
     public String GetString(String modulo, String key, String subKey)
@@ -101,18 +109,25 @@ public class ConfigurationProvider
 
     public String GetString(Class modulo, String key, String subKey)
     {
-        return this.GetString(modulo.getName() + "." + key + "_" + subKey);
+        return this.GetString(this.getClassName(modulo) + "." + key + "_" + subKey);
     }
 
-    public boolean GetBool(Class module, String key)
+    public Boolean GetBool(Class modulo, String key)
     {
-        return this.GetBool(module.getName(), key);
-
+        return this.GetBool(this.getClassName(modulo), key);
     }
 
-    public boolean GetBool(String module, String key)
+    public Boolean GetBool(String module, String key)
     {
-        return (boolean) this.GetProperties().get(key);
+        if (this.GetProperties().containsKey(key))
+        {
+            String bool = this.GetProperties().get(key).toString();
+            return Boolean.parseBoolean(bool);
+        }
+        else
+        {
+            return null;
+        }
     }
 
     public void Save(String modulo, String key, Object value)
@@ -137,4 +152,9 @@ public class ConfigurationProvider
         }
     }
 
+    private String getClassName(Class c)
+    {
+        int len = c.getPackageName().length();
+        return c.getName().substring(len + 1);
+    }
 }

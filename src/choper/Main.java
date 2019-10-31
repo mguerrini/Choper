@@ -9,6 +9,8 @@ import choper.domain.moneyReaders.MoneyReaderMachineProvider;
 import choper.domain.moneyReaders.MoneyReaderMachine;
 import choper.domain.smartCards.SmartCardReader;
 import choper.domain.*;
+import choper.domain.switches.ISwitch;
+import choper.domain.switches.SwitchProvider;
 import choper.domain.test.BillAndCardManager;
 import choper.domain.test.FlowSensorTest;
 import choper.domain.test.LcdTest;
@@ -50,10 +52,12 @@ public class Main
             //MoneyReaderMachine reader = MoneyReaderMachineProvider.Instance.Get();
 
             //ShowSerialPorts();
-            BillAndCardTest();
-            //TestLcd();
+            //BillAndCardTest();
+            LcdTest();
 
             //FlowSensorTest();
+            
+            //SwitchTest();
         }
         catch (Exception ex)
         {
@@ -61,6 +65,40 @@ public class Main
         }
     }
 
+    private static void SwitchTest()
+    {
+        try
+        {
+            ISwitch s = SwitchProvider.Instance.Get();
+            s.Init();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+            
+            s.Open();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+            Thread.sleep(3000);
+
+            s.Close();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+            Thread.sleep(3000);
+
+            s.Open();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+            Thread.sleep(3000);
+
+            s.Close();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+        }
+        catch (InterruptedException ex)
+        {
+            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
     private static void FlowSensorTest() throws InterruptedException
     {
         FlowSensorTest t = new FlowSensorTest();
@@ -69,7 +107,7 @@ public class Main
         t.Start();
     }
 
-    private static void TestLcd() throws Exception
+    private static void LcdTest() throws Exception
     {
         LcdTest t = new LcdTest();
         t.Test2();

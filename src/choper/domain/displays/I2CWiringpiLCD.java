@@ -18,9 +18,8 @@ public class I2CWiringpiLCD
 
     public I2CWiringpiLCD()
     {
-        String addStr = ConfigurationProvider.Instance.GetString(this.getClass().getName(), "Address");
+        String addStr = ConfigurationProvider.Instance.GetString(this.getClass(), "Address");
         int add = Integer.parseUnsignedInt(addStr, 16);
-        int addInt = ConfigurationProvider.Instance.GetInt(this.getClass().getName(), "Address");
         _device = I2C.wiringPiI2CSetup(add);
         //_device = I2C.wiringPiI2CSetup(0x3F);
     }
