@@ -5,6 +5,7 @@
  */
 package choper.domain.moneyReaders;
 
+import choper.platform.ConfigurationProvider;
 import choper.platform.serialComm.SerialChannel;
 import choper.platform.events.*;
 import java.io.IOException;
@@ -21,7 +22,7 @@ import java.util.stream.Stream;
  *
  * @author max22
  */
-public class MoneyReaderMachine
+public class MoneyReaderMachine implements IMoneyReaderMachine
 {
     public IEvent<Integer> TicketReady = new Event("MoneyReaderMachine->TicketReady");
     public IEvent<Integer> TicketAccepted = new Event("MoneyReaderMachine->TicketAccepted");
@@ -31,23 +32,70 @@ public class MoneyReaderMachine
     public MoneyReaderMachine()
     {
         this.TicketCodes = new HashMap<Byte, Integer>();
-
-        this.TicketCodes.put((byte) 1, 2);
-        this.TicketCodes.put((byte) 2, 5);
-        this.TicketCodes.put((byte) 3, 10);
-        this.TicketCodes.put((byte) 4, 20);
-        this.TicketCodes.put((byte) 5, 50);
-        this.TicketCodes.put((byte) 6, 100);
-        this.TicketCodes.put((byte) 7, 200);
-        this.TicketCodes.put((byte) 8, 500);
     }
 
+    private String DevicePath = "/dev/serial/by-id";
+    
     private HashMap<Byte, Integer> TicketCodes;
 
     private SerialChannel Channel;
 
     public boolean IsEscrowEnabled;
+    
+    private boolean IsEnabled;
+    
+    public void Init()
+    {
+        int code;
+        
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "2");
+        this.TicketCodes.put((byte) code, 2);
+        
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "5");
+        this.TicketCodes.put((byte) code, 5);
 
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "10");
+        this.TicketCodes.put((byte) code, 10);
+
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "20");
+        this.TicketCodes.put((byte) code, 20);
+
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "50");
+        this.TicketCodes.put((byte) code, 50);
+
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "100");
+        this.TicketCodes.put((byte) code, 100);
+
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "200");
+        this.TicketCodes.put((byte) code, 200);
+
+        code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "500");
+        this.TicketCodes.put((byte) code, 500);
+        
+        this.DevicePath = ConfigurationProvider.Instance.GetString(this.getClass(), "DevicePath");
+    }
+    
+    public IEvent<Integer> GetTicketReadyEvent()
+    {
+        return this.TicketReady;
+    }
+    
+    public IEvent<Integer> GetTicketAcceptedEvent()
+    {
+        return this.TicketAccepted;
+    }
+    
+    public IEvent<Integer> GetTicketRejectedEvent()
+    {
+        return this.TicketRejected;
+    }
+    
+    public IEvent<MoneyReaderMachineDataReceivedEventArgs> GetDataReceivedEvent()
+    {
+        return this.DataReceived;
+    }
+    
+    @Override
     public boolean Connect()
     {
         String port = this.FindPort();
@@ -77,6 +125,7 @@ public class MoneyReaderMachine
         }
     }
 
+    @Override
     public void Disconnect()
     {
         SerialChannel ch = this.Channel;
@@ -87,8 +136,9 @@ public class MoneyReaderMachine
         this.Channel = null;
     }
 
-    private boolean IsEnabled;
 
+
+    @Override
     public boolean Enabled()
     {
         try
@@ -112,6 +162,7 @@ public class MoneyReaderMachine
         }
     }
 
+    @Override
     public boolean Disabled()
     {
         try
@@ -182,7 +233,7 @@ public class MoneyReaderMachine
     {
         //File folder = new File("/dev/serial");
         //try (Stream<Path> walk = Files.walk(Paths.get("/dev"))) MAC OS
-        try (Stream<Path> walk = Files.walk(Paths.get("/dev/serial/by-id")))
+        try (Stream<Path> walk = Files.walk(Paths.get(this.DevicePath)))
         {
             List<String> result = walk.map(x -> x.toString()).collect(Collectors.toList());
             result.forEach(System.out::println);
@@ -191,7 +242,7 @@ public class MoneyReaderMachine
         }
         catch (IOException e)
         {
-            System.out.println(e.getMessage());
+            System.out.println(e);
             return new ArrayList<String>();
         }
     }
@@ -200,6 +251,7 @@ public class MoneyReaderMachine
 
     protected boolean IsTicketAccepted;
 
+    @Override
     public boolean Accept()
     {
         try
@@ -222,6 +274,7 @@ public class MoneyReaderMachine
         }
     }
 
+    @Override
     public boolean Reject()
     {
         try
@@ -245,6 +298,7 @@ public class MoneyReaderMachine
         }
     }
 
+    @Override
     public boolean EnableEscrow(boolean enabled)
     {
         try

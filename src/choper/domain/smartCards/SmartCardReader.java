@@ -6,9 +6,7 @@
 package choper.domain.smartCards;
 
 import choper.platform.events.*;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -18,7 +16,7 @@ import javax.smartcardio.*;
  *
  * @author max22
  */
-public class SmartCardReader
+public class SmartCardReader implements ISmartCardReader
 {
     public IEvent<EventArgs> CardInserted;
     public IEvent<EventArgs> CardRemoved;
@@ -41,8 +39,14 @@ public class SmartCardReader
     private Card ActiveCard;
     private CardTerminal ActiveTerminal;
     private Float CurrentBalance;
+
+    public void Init()
+    {
+        
+    }
     
     // <editor-fold defaultstate="collapsed" desc="-- Open / Close --">
+    @Override
     public void Connect()
     {
         if (this.IsStarted)
@@ -55,6 +59,7 @@ public class SmartCardReader
         this.Worker.start();
     }
 
+    @Override
     public void Disconnect()
     {
         if (!this.IsStarted)
@@ -122,8 +127,9 @@ public class SmartCardReader
                                 this.OnCardRemoved(terminal, this.ActiveCard);
                             }
                         }
-                        isFirstTime = false;
                     }
+
+                    isFirstTime = false;
                 }
             }
             catch (CardException ex)
@@ -179,7 +185,7 @@ public class SmartCardReader
             if (pin)
             {
                 this.CurrentBalance = this.DoGetBalance();
-                
+
                 ((Event<EventArgs>) this.CardInserted).Invoke(this, EventArgs.Empty());
             }
             else
@@ -210,16 +216,35 @@ public class SmartCardReader
         }
     }
 
+    
+    
+    public IEvent<EventArgs> GetCardInsertedEvent()
+    {
+        return this.CardInserted;
+    }
+
+    public IEvent<EventArgs> GetCardRemovedEvent()
+    {
+        return this.CardRemoved;
+    }
+
+    public IEvent<EventArgs> GetBalanceChangedEvent()
+    {
+        return this.BalanceChanged;
+    }
+
     public Card GetActiveCard()
     {
         return this.ActiveCard;
     }
 
+    @Override
     public boolean IsCardPresent()
     {
         return this.IsCardPresent;
     }
 
+    @Override
     public boolean SetBalance(float amount)
     {
         if (this.ActiveCard == null)
@@ -227,13 +252,6 @@ public class SmartCardReader
             return false;
         }
 
-        /*
-        boolean pin = this.VerifyPIN("FF", "FF", "FF");
-        if (!pin)
-        {
-            return false;
-        }
-         */
         Card card = this.ActiveCard;
         CardTerminal terminal = this.ActiveTerminal;
 
@@ -268,6 +286,7 @@ public class SmartCardReader
         }
     }
 
+    @Override
     public boolean AddBalance(float amount)
     {
         if (this.ActiveCard == null)
@@ -280,10 +299,12 @@ public class SmartCardReader
             float val = this.GetBalance();
             val = val + amount;
             boolean output = this.SetBalance(val);
-            
+
             if (output)
+            {
                 this.CurrentBalance = val;
-            
+            }
+
             return output;
         }
         catch (Exception ex)
@@ -292,8 +313,9 @@ public class SmartCardReader
             return false;
         }
     }
-    
-        public boolean SubtractBalance(float amount)
+
+    @Override
+    public boolean SubtractBalance(float amount)
     {
         if (this.ActiveCard == null)
         {
@@ -304,11 +326,13 @@ public class SmartCardReader
         {
             float val = this.GetBalance();
             val = val - amount;
-              boolean output = this.SetBalance(val);
-            
+            boolean output = this.SetBalance(val);
+
             if (output)
+            {
                 this.CurrentBalance = val;
-            
+            }
+
             return output;
         }
         catch (Exception ex)
@@ -318,11 +342,12 @@ public class SmartCardReader
         }
     }
 
+    @Override
     public float GetBalance()
     {
         return this.CurrentBalance;
     }
-        
+
     private float DoGetBalance() throws Exception
     {
         if (this.ActiveCard == null)
@@ -330,13 +355,6 @@ public class SmartCardReader
             throw new Exception("Operacón inválida - No hay SmartCard conectada.");
         }
 
-        /*
-        boolean pin = this.VerifyPIN("FF", "FF", "FF");
-        if (!pin)
-        {
-            return 0;
-        }
-         */
         try
         {
             //POSICION DE MEMORIA 32, 5 BYTES

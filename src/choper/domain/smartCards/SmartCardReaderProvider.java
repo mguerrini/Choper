@@ -13,9 +13,9 @@ public class SmartCardReaderProvider
 {
     public  static SmartCardReaderProvider Instance = new   SmartCardReaderProvider();
     
-    private SmartCardReader SingleInstance;
+    private ISmartCardReader SingleInstance;
     
-    public SmartCardReader Get()
+    public ISmartCardReader Get()
     {
         if (this.SingleInstance == null)
             this.SingleInstance = new SmartCardReader();

@@ -5,19 +5,24 @@
  */
 package choper.domain.displays;
 
+import choper.platform.ConfigurationProvider;
 import com.pi4j.wiringpi.I2C;
 
 /**
  *
  * @author mguerrini
  */
-public class I2CWiringpiLCD
+public class I2CWiringpiLCD 
 {
     private int _device;
 
     public I2CWiringpiLCD()
     {
-        _device = I2C.wiringPiI2CSetup(0x3F);
+        String addStr = ConfigurationProvider.Instance.GetString(this.getClass().getName(), "Address");
+        int add = Integer.parseUnsignedInt(addStr, 16);
+        int addInt = ConfigurationProvider.Instance.GetInt(this.getClass().getName(), "Address");
+        _device = I2C.wiringPiI2CSetup(add);
+        //_device = I2C.wiringPiI2CSetup(0x3F);
     }
    
     private void doWrite(byte cmd, byte[] data)
@@ -253,7 +258,7 @@ public class I2CWiringpiLCD
     }
 
     // clear lcd and set to home
-    private void clear()
+    public void clear()
     {
         lcd_write((byte) LCD_CLEARDISPLAY);
         lcd_write((byte) LCD_RETURNHOME);

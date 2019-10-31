@@ -13,9 +13,9 @@ public class MoneyReaderMachineProvider
 {
     public  static MoneyReaderMachineProvider Instance = new   MoneyReaderMachineProvider();
     
-    private MoneyReaderMachine SingleInstance;
+    private IMoneyReaderMachine SingleInstance;
     
-    public MoneyReaderMachine Get()
+    public IMoneyReaderMachine Get()
     {
         if (this.SingleInstance == null)
             this.SingleInstance = new MoneyReaderMachine();

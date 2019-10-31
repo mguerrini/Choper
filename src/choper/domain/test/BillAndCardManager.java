@@ -39,8 +39,8 @@ public class BillAndCardManager
 
     public void Open()
     {
-        this.CardReader = SmartCardReaderProvider.Instance.Get();
-        this.BillReader = MoneyReaderMachineProvider.Instance.Get();
+        this.CardReader = (SmartCardReader) SmartCardReaderProvider.Instance.Get();
+        this.BillReader = (MoneyReaderMachine) MoneyReaderMachineProvider.Instance.Get();
 
         this.CardReader.CardInserted.Subscribe(this::OnCardInserted);
         this.CardReader.CardRemoved.Subscribe(this::OnCardRemoved);
@@ -51,7 +51,9 @@ public class BillAndCardManager
         this.BillReader.TicketReady.Subscribe(this::OnBillTicketReady);
         this.BillReader.TicketRejected.Subscribe(this::OnBillTicketRejected);
 
+        this.BillReader.Init();
         this.BillReader.Connect();
+        this.CardReader.Init();
         this.CardReader.Connect();
     }
 

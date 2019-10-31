@@ -50,10 +50,10 @@ public class Main
             //MoneyReaderMachine reader = MoneyReaderMachineProvider.Instance.Get();
 
             //ShowSerialPorts();
-            //BillAndCardTest();
+            BillAndCardTest();
             //TestLcd();
 
-            FlowSensorTest();
+            //FlowSensorTest();
         }
         catch (Exception ex)
         {
