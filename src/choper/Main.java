@@ -14,6 +14,7 @@ import choper.domain.switches.SwitchProvider;
 import choper.domain.test.BillAndCardManager;
 import choper.domain.test.FlowSensorTest;
 import choper.domain.test.LcdTest;
+import choper.platform.ConfigurationProvider;
 import choper.platform.events.*;
 import com.pi4j.io.i2c.I2CFactory;
 import com.pi4j.platform.PlatformAlreadyAssignedException;
@@ -49,20 +50,26 @@ public class Main
 
         try
         {
+            Logger.getGlobal().setLevel(Level.INFO);
+
             //MoneyReaderMachine reader = MoneyReaderMachineProvider.Instance.Get();
-
-            //ShowSerialPorts();
+            //ShowSerialPocardrts();
             //BillAndCardTest();
-            LcdTest();
-
+            //LcdTest();
             //FlowSensorTest();
-            
             //SwitchTest();
+            StartChoper();
         }
         catch (Exception ex)
         {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private static void StartChoper()
+    {
+        ChoperConsole console = new ChoperConsole();
+        console.Start();
     }
 
     private static void SwitchTest()
@@ -73,7 +80,17 @@ public class Main
             s.Init();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
-            
+
+            s.Open();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+            Thread.sleep(3000);
+
+            s.Close();
+            System.out.println("IsOpened:" + s.IsOpened());
+            System.out.println("IsClosed:" + s.IsClosed());
+            Thread.sleep(3000);
+
             s.Open();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
@@ -82,14 +99,8 @@ public class Main
             s.Close();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
-            Thread.sleep(3000);
 
             s.Open();
-            System.out.println("IsOpened:" + s.IsOpened());
-            System.out.println("IsClosed:" + s.IsClosed());
-            Thread.sleep(3000);
-
-            s.Close();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
         }
@@ -98,7 +109,7 @@ public class Main
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
+
     private static void FlowSensorTest() throws InterruptedException
     {
         FlowSensorTest t = new FlowSensorTest();
@@ -124,7 +135,7 @@ public class Main
     private static void ShowSerialPorts()
     {
         //File folder = new File("/dev/serial");
-        try (Stream<Path> walk = Files.walk(Paths.get("/dev/serial/by-id")))
+        try ( Stream<Path> walk = Files.walk(Paths.get("/dev/serial/by-id")))
         {
             List<String> result = walk.map(x -> x.toString()).collect(Collectors.toList());
             result.forEach(System.out::println);

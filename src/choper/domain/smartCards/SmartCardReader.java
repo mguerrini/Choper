@@ -1,7 +1,7 @@
 /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
- 0* and open the template in the editor.
+ ∫* and open the template in the editor.
  */
 package choper.domain.smartCards;
 
@@ -43,6 +43,11 @@ public class SmartCardReader implements ISmartCardReader
     public void Init()
     {
         
+    }
+    
+    @Override
+    public void UpdateParameters()
+    {
     }
     
     // <editor-fold defaultstate="collapsed" desc="-- Open / Close --">
@@ -100,6 +105,7 @@ public class SmartCardReader implements ISmartCardReader
                 if (listTerms.size() == 0)
                 {
                     System.out.println("No hay Lectoras de tarjetas conectadas...");
+                    Thread.sleep(60000);
                 }
                 else
                 {
@@ -128,11 +134,15 @@ public class SmartCardReader implements ISmartCardReader
             }
             catch (CardException ex)
             {
-                Logger.getLogger(SmartCardReader.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getGlobal().log(Level.SEVERE, null, ex);
             }
             catch (InterruptedException ex)
             {
-                Logger.getLogger(SmartCardReader.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getGlobal().log(Level.SEVERE, null, ex);
+            }
+            catch(Exception ex)
+            {
+                Logger.getGlobal().log(Level.SEVERE, null, ex);
             }
         }
     }
@@ -270,6 +280,7 @@ public class SmartCardReader implements ISmartCardReader
             ResponseAPDU res = this.ActiveCard.getBasicChannel().transmit(cmd);
             System.out.println("Writing Card  - SW1: " + res.getSW1() + ", SW2: " + res.getSW2());
 
+            this.CurrentBalance = amount;
             return true;
         }
         catch (CardException ex)
@@ -436,4 +447,5 @@ public class SmartCardReader implements ISmartCardReader
             return false;
         }
     }
+
 }

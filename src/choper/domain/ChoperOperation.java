@@ -18,6 +18,8 @@ public class ChoperOperation
     public float Amount;
     
     public FlowSensorEventArgs FlowSensorData;
+    
+    public boolean Silent;
 }
 
 

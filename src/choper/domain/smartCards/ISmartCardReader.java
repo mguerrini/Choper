@@ -26,6 +26,8 @@ public interface ISmartCardReader
 
     void Disconnect();
 
+    void UpdateParameters();
+
     boolean IsCardPresent();
 
     boolean AddBalance(float amount);

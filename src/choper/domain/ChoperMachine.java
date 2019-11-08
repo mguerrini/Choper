@@ -16,6 +16,7 @@ import choper.domain.flowSensors.*;
 import choper.domain.moneyReaders.*;
 import choper.domain.smartCards.*;
 import choper.domain.switches.SwitchProvider;
+import choper.platform.ConfigurationProvider;
 import choper.platform.events.EventArgs;
 import choper.platform.threading.TaskQueue;
 import java.util.logging.Level;
@@ -34,6 +35,9 @@ public class ChoperMachine
     private ISwitch FlowValve;
 
     private float LiterPrice = 100; //precio del litro de cerveza
+    private int UpdateVolumeFrequency = 50; //cm3
+    private long WriteBalanceFrequency = 1000; //milisegundos
+
     private TaskQueue OperationTask;
 
     public ChoperMachine()
@@ -49,12 +53,24 @@ public class ChoperMachine
             display.Init();
             this.Display = new Display(display);
 
+            this.Display.ShowTitle("-- Iniciando --");
+
+            this.ReInit();
+        }
+        catch (Exception ex)
+        {
+            Logger.getGlobal().log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private void ReInit()
+    {
+        try
+        {
             this.FlowSensor = FlowSensorProvider.Instance.Get();
             this.BillReader = MoneyReaderMachineProvider.Instance.Get();
             this.SmartCardReader = SmartCardReaderProvider.Instance.Get();
             this.FlowValve = SwitchProvider.Instance.Get();
-
-            this.Display.ShowTitle("-- Iniciando --");
 
             this.Display.ShowMessage("Caudalímetro...");
             this.FlowSensor.Init();
@@ -87,21 +103,122 @@ public class ChoperMachine
         }
         catch (InterruptedException ex)
         {
-            Logger.getLogger(ChoperMachine.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getGlobal().log(Level.SEVERE, null, ex);
         }
     }
 
     public void Connect()
     {
+        this.FlowValve.Open();
+
         this.SmartCardReader.Connect();
         this.BillReader.Connect();
+
+        this.ShowReadyMessage();
     }
 
     public void Disconnect()
     {
+        this.FlowValve.Open();
+
         this.SmartCardReader.Disconnect();
         this.BillReader.Disconnect();
         this.FlowSensor.Disconnect();
+    }
+
+    public void Reset()
+    {
+        this.Disconnect();
+
+        this.Display.ShowTitle("-- Reseteando --");
+
+        this.FlowSensor.GetVolumeChangedEvent().UnSubscribe(this::OnFlowSensorChanged);
+
+        this.BillReader.GetTicketReadyEvent().UnSubscribe(this::OnBillTicketReady);
+        this.BillReader.GetTicketAcceptedEvent().UnSubscribe(this::OnBillTicketAccepted);
+        this.BillReader.GetTicketRejectedEvent().UnSubscribe(this::OnBillTicketRejected);
+
+        this.SmartCardReader.GetCardInsertedEvent().UnSubscribe(this::OnCardInserted);
+        this.SmartCardReader.GetCardRemovedEvent().UnSubscribe(this::OnCardRemoved);
+
+        this.ReInit();
+
+        this.Connect();
+    }
+
+    public void CleanMoney()
+    {
+        if (!this.SmartCardReader.IsCardPresent())
+        {
+            Logger.getGlobal().info("Tarjeta no insertada.");
+            return;
+        }
+
+        ChoperOperation op = new ChoperOperation();
+        op.Operation = OperationType.ClearMoney;
+        op.Silent = false;
+
+        this.OperationTask.Enqueue(op);
+    }
+
+    public Float GetBalance()
+    {
+        if (!this.SmartCardReader.IsCardPresent())
+        {
+            return null;
+        }
+        
+        return this.SmartCardReader.GetBalance();
+    }
+    
+    public void AddMoney(Float value)
+    {
+        if (!this.SmartCardReader.IsCardPresent())
+        {
+            Logger.getGlobal().info("Tarjeta no insertada.");
+            return;
+        }
+
+        ChoperOperation op = new ChoperOperation();
+        op.Operation = OperationType.AddMoney;
+        op.Amount = value;
+        op.Silent = false;
+
+        this.OperationTask.Enqueue(op);
+    }
+
+    public void SubstractMoney(Float value)
+    {
+        if (!this.SmartCardReader.IsCardPresent())
+        {
+            Logger.getGlobal().info("Tarjeta no insertada.");
+            return;
+        }
+
+        ChoperOperation op = new ChoperOperation();
+        op.Operation = OperationType.SubMoney;
+        op.Amount = value;
+        op.Silent = false;
+
+        this.OperationTask.Enqueue(op);
+    }
+
+    private void DoUpdateParameters()
+    {
+        this.LiterPrice = ConfigurationProvider.Instance.GetFloat(this.getClass(), "Price");
+        this.UpdateVolumeFrequency = ConfigurationProvider.Instance.GetInt(this.getClass(), "UpdateVolumeFrequency");
+        this.WriteBalanceFrequency = ConfigurationProvider.Instance.GetLong(this.getClass(), "WriteBalanceFrequency");
+    }
+
+    public void UpdateParameters()
+    {
+        this.DoUpdateParameters();
+
+        this.Display.UpdateParameters();
+        this.FlowSensor.UpdateParameters();
+        this.BillReader.UpdateParameters();
+        this.SmartCardReader.UpdateParameters();
+        this.FlowValve.UpdateParameters();
     }
 
     private void OnCardInserted(Object source, EventArgs args)
@@ -205,11 +322,33 @@ public class ChoperMachine
                 case AddMoney:
                     boolean addBal = this.SmartCardReader.AddBalance(op.Amount);
 
-                    if (addBal)
+                    if (addBal && !op.Silent)
                     {
                         float balance = this.SmartCardReader.GetBalance();
                         this.Display.UpdateBalance(balance);
                     }
+                    break;
+                case SubMoney:
+                    boolean subBal = this.SmartCardReader.SubtractBalance(op.Amount);
+
+                    if (subBal && !op.Silent)
+                    {
+                        float balance = this.SmartCardReader.GetBalance();
+                        this.Display.UpdateBalance(balance);
+                    }
+                    break;
+
+                case ClearMoney:
+                    boolean cleanBal = this.SmartCardReader.SetBalance(0f);
+
+                    if (cleanBal && !op.Silent)
+                    {
+                        float balance = this.SmartCardReader.GetBalance();
+                        this.Display.UpdateBalance(balance);
+                    }
+                    break;
+                case VolumeChanged:
+                    this.OnVolumeChange(op.FlowSensorData);
                     break;
                 default:
                     break;
@@ -220,9 +359,6 @@ public class ChoperMachine
             System.out.println(ex);
         }
     }
-
-    private int UpdateVolumeFrequency = 50; //cm3
-    private long WriteBalanceFrequency = 1000; //milisegundos
 
     private float TotalMoneyConsumed = 0;
     private float LastUpdatedVolumen;

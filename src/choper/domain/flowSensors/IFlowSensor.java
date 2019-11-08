@@ -22,6 +22,8 @@ public interface IFlowSensor
 
     void Disconnect();
 
+    void UpdateParameters();
+
     float GetVolume();
 
 }

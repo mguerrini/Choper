@@ -15,8 +15,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.*;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.logging.Logger;
 
 /**
  *
@@ -35,73 +37,82 @@ public class MoneyReaderMachine implements IMoneyReaderMachine
     }
 
     private String DevicePath = "/dev/serial/by-id";
-    
+
     private HashMap<Byte, Integer> TicketCodes;
 
     private SerialChannel Channel;
 
     public boolean IsEscrowEnabled;
-    
+
     private boolean IsEnabled;
-    
+
     public void Init()
     {
         int code;
-        
+
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "2");
         this.TicketCodes.put((byte) code, 2);
-        
+        System.out.println("Billete Valor 2: " + code);
+
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "5");
         this.TicketCodes.put((byte) code, 5);
+        System.out.println("Billete Valor 5: " + code);
 
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "10");
         this.TicketCodes.put((byte) code, 10);
+        System.out.println("Billete Valor 10: " + code);
 
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "20");
         this.TicketCodes.put((byte) code, 20);
+        System.out.println("Billete Valor 20: " + code);
 
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "50");
         this.TicketCodes.put((byte) code, 50);
+        System.out.println("Billete Valor 50: " + code);
 
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "100");
         this.TicketCodes.put((byte) code, 100);
+        System.out.println("Billete Valor 100: " + code);
 
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "200");
         this.TicketCodes.put((byte) code, 200);
+        System.out.println("Billete Valor 200: " + code);
 
         code = ConfigurationProvider.Instance.GetInt(this.getClass(), "Ticket", "500");
         this.TicketCodes.put((byte) code, 500);
-        
+        System.out.println("Billete Valor 500: " + code);
+
         this.DevicePath = ConfigurationProvider.Instance.GetString(this.getClass(), "DevicePath");
+        System.out.println("DevicePath: " + this.DevicePath);
     }
-    
+
     public IEvent<Integer> GetTicketReadyEvent()
     {
         return this.TicketReady;
     }
-    
+
     public IEvent<Integer> GetTicketAcceptedEvent()
     {
         return this.TicketAccepted;
     }
-    
+
     public IEvent<Integer> GetTicketRejectedEvent()
     {
         return this.TicketRejected;
     }
-    
+
     public IEvent<MoneyReaderMachineDataReceivedEventArgs> GetDataReceivedEvent()
     {
         return this.DataReceived;
     }
-    
+
     @Override
     public boolean Connect()
     {
         String port = this.FindPort();
         if (port == null)
         {
-            System.out.println("MoneyReaderMachine - No es posible detectar el puerto donde está conectada la BV20.");
+            Logger.getGlobal().severe("MoneyReaderMachine - No es posible detectar el puerto donde está conectada la BV20.");
             return false;
         }
 
@@ -120,7 +131,8 @@ public class MoneyReaderMachine implements IMoneyReaderMachine
         }
         catch (Exception ex)
         {
-            System.out.println(ex);
+            Logger.getGlobal().log(Level.SEVERE, "MoneyReaderMachine - Error al conectarse con la BV20.", ex);
+
             return false;
         }
     }
@@ -136,7 +148,10 @@ public class MoneyReaderMachine implements IMoneyReaderMachine
         this.Channel = null;
     }
 
-
+    @Override
+    public void UpdateParameters()
+    {
+    }
 
     @Override
     public boolean Enabled()
@@ -233,7 +248,7 @@ public class MoneyReaderMachine implements IMoneyReaderMachine
     {
         //File folder = new File("/dev/serial");
         //try (Stream<Path> walk = Files.walk(Paths.get("/dev"))) MAC OS
-        try (Stream<Path> walk = Files.walk(Paths.get(this.DevicePath)))
+        try ( Stream<Path> walk = Files.walk(Paths.get(this.DevicePath)))
         {
             List<String> result = walk.map(x -> x.toString()).collect(Collectors.toList());
             result.forEach(System.out::println);
@@ -594,4 +609,5 @@ public class MoneyReaderMachine implements IMoneyReaderMachine
         }
         return output;
     }
+
 }

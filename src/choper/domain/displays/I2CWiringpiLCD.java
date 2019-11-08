@@ -12,7 +12,7 @@ import com.pi4j.wiringpi.I2C;
  *
  * @author mguerrini
  */
-public class I2CWiringpiLCD 
+public class I2CWiringpiLCD
 {
     private int _device;
 
@@ -23,11 +23,12 @@ public class I2CWiringpiLCD
         _device = I2C.wiringPiI2CSetup(add);
         //_device = I2C.wiringPiI2CSetup(0x3F);
     }
-   
+
+
     private void doWrite(byte cmd, byte[] data)
     {
         int b = I2C.wiringPiI2CWrite(_device, cmd);
-        
+
         for (int i = 0; i < data.length; i++)
         {
             b = I2C.wiringPiI2CWrite(_device, data[i]);
@@ -36,7 +37,7 @@ public class I2CWiringpiLCD
 
     private void doWrite(byte cmd)
     {
-        int b=I2C.wiringPiI2CWrite(_device, cmd);
+        int b = I2C.wiringPiI2CWrite(_device, cmd);
 
     }
 

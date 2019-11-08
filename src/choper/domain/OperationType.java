@@ -12,6 +12,8 @@ package choper.domain;
 public enum OperationType
 {
     AddMoney,
+    SubMoney,
+    ClearMoney,
     VolumeChanged,
     CardInserted, 
     CardRemoved,

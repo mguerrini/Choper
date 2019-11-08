@@ -28,6 +28,8 @@ public interface IMoneyReaderMachine
 
     void Disconnect();
 
+    void UpdateParameters();
+
     boolean Enabled();
 
     boolean Disabled();
@@ -37,5 +39,4 @@ public interface IMoneyReaderMachine
     boolean Accept();
 
     boolean Reject();
-
 }

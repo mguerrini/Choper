@@ -6,6 +6,7 @@
 package choper.domain.displays;
 
 import choper.domain.DisplayTextAlign;
+import choper.domain.Environment;
 
 /**
  *
@@ -15,11 +16,25 @@ public class Display16x2 implements IDisplay16x2
 {
     public Display16x2()
     {
-        this.RealDisplay = new I2CWiringpiLCD();
-        this.RealDisplay.init();
+        if (Environment.IsRaspberryPiPlatform())
+        {
+            this.RealDisplay = new I2CWiringpiLCD();
+            this.RealDisplay.init();
+        }
     }
 
     private I2CWiringpiLCD RealDisplay;
+
+    @Override
+    public void Init()
+    {
+    }
+
+    @Override
+    public void UpdateParameters()
+    {
+
+    }
 
     @Override
     public void ShowLine1(String txt)
@@ -73,7 +88,10 @@ public class Display16x2 implements IDisplay16x2
     @Override
     public void Clear()
     {
-        this.RealDisplay.clear();
+        if (this.RealDisplay != null)
+        {
+            this.RealDisplay.clear();
+        }
     }
 
     private void DoShowLine(int line, String txt)
@@ -86,7 +104,14 @@ public class Display16x2 implements IDisplay16x2
             }
         }
 
-        this.RealDisplay.display_string(txt, line);
+        if (this.RealDisplay != null)
+        {
+            this.RealDisplay.display_string(txt, line);
+        }
+        else
+        {
+            System.out.println(txt);
+        }
     }
 
     private void DoShowLine(int line, int position, String txt)
@@ -99,13 +124,23 @@ public class Display16x2 implements IDisplay16x2
             }
         }
 
-        this.RealDisplay.display_string_pos(txt, line, position);
+        if (this.RealDisplay != null)
+        {
+            this.RealDisplay.display_string_pos(txt, line, position);
+        }
+        else
+        {
+            System.out.println(txt);
+        }
     }
 
     private void DoClearLine(int line)
     {
         String txt = "                ";
-        this.RealDisplay.display_string(txt, line);
+        if (this.RealDisplay != null)
+        {
+            this.RealDisplay.display_string(txt, line);
+        }
     }
 
     private void DoClearLine(int line, int position)
@@ -117,13 +152,10 @@ public class Display16x2 implements IDisplay16x2
             txt += " ";
         }
 
-        this.RealDisplay.display_string_pos(txt, line, position);
-    }
-
-    @Override
-    public void Init()
-    {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (this.RealDisplay != null)
+        {
+            this.RealDisplay.display_string_pos(txt, line, position);
+        }
     }
 
     @Override
@@ -171,4 +203,5 @@ public class Display16x2 implements IDisplay16x2
             }
         }
     }
+
 }

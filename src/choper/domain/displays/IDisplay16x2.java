@@ -15,6 +15,9 @@ public interface IDisplay16x2
 {
     void Init();
 
+    public void UpdateParameters();
+    
+    
     public void ShowLine1(String txt);
 
     public void ShowLine1(String txt, DisplayTextAlign align);

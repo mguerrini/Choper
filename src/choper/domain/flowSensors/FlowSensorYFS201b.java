@@ -10,6 +10,7 @@ import choper.platform.ConfigurationProvider;
 import choper.platform.events.Event;
 import choper.platform.events.IEvent;
 import com.pi4j.wiringpi.Gpio;
+import java.util.logging.Logger;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -50,36 +51,50 @@ public class FlowSensorYFS201b implements IFlowSensor
     {
         Environment.Configure();
 
-        this.Gpio17 = ConfigurationProvider.Instance.GetInt(this.getClass(), "GpioNumber");
-        this.PulsesPerLiter = ConfigurationProvider.Instance.GetInt(this.getClass(), "GpioNumber");
-        this.NotifyFrequency = ConfigurationProvider.Instance.GetInt(this.getClass(), "GpioNumber");
-        this.RaiseEventAsync = ConfigurationProvider.Instance.GetBool(this.getClass(), "RaiseEventAsync");
+        this.Gpio17 = ConfigurationProvider.Instance.GetInt("FlowSensor", "GpioNumber");
+        System.out.println("Gpio Number: " + this.Gpio17);
+        this.RaiseEventAsync = ConfigurationProvider.Instance.GetBool("FlowSensor", "RaiseEventAsync");
+        System.out.println("Raise Event Async: " + this.RaiseEventAsync);
 
-        Gpio.pinMode(Gpio17, Gpio.INPUT);
-        Gpio.pullUpDnControl(Gpio17, Gpio.PUD_UP);
+        this.UpdateParameters();
 
-        this.NotifierWorker = new Timer("FlowSensorNotifier");
+        if (Environment.IsRaspberryPiPlatform())
+        {
+            Gpio.pinMode(Gpio17, Gpio.INPUT);
+            Gpio.pullUpDnControl(Gpio17, Gpio.PUD_UP);
+        }
     }
 
     @Override
     public void Connect()
     {
-        Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
+        if (Environment.IsRaspberryPiPlatform())
+        {
+            Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
+            this.StartTimeMillis = Gpio.millis();
+        }
+        else
+        {
+            this.StartTimeMillis = System.currentTimeMillis();
+        }
+
         this.FlowCounter = 0;
         this.LastFlowCounterValue = 0;
-        this.StartTimeMillis = Gpio.millis();
         this.EventCounter = 0;
 
-        this.NotifierWorker.schedule(new TimerTask()
+        if (this.NotifierWorker == null)
         {
-            @Override
-            public void run()
+            this.NotifierWorker = new Timer("FlowSensorNotifier");
+            this.NotifierWorker.schedule(new TimerTask()
             {
-                OnTimerTick();
-            }
+                @Override
+                public void run()
+                {
+                    OnTimerTick();
+                }
 
-        }, this.NotifyFrequency, this.NotifyFrequency);
-
+            }, this.NotifyFrequency, this.NotifyFrequency);
+        }
         /*
         long tStart = Gpio.millis();
         long tStop = Gpio.millis();
@@ -97,6 +112,15 @@ public class FlowSensorYFS201b implements IFlowSensor
          */
     }
 
+    @Override
+    public void UpdateParameters()
+    {
+        this.PulsesPerLiter = ConfigurationProvider.Instance.GetInt("FlowSensor", "PulsesPerLiter");
+        System.out.println("PulsesPerLiter: " + this.PulsesPerLiter);
+        this.NotifyFrequency = ConfigurationProvider.Instance.GetInt("FlowSensor", "NotifyFrequency");
+        System.out.println("NotifyFrequency: " + this.NotifyFrequency + " ms");
+    }
+
     private void OnTimerTick()
     {
         int currValue = this.FlowCounter;
@@ -106,7 +130,7 @@ public class FlowSensorYFS201b implements IFlowSensor
             return;
         }
 
-        float delta = this.LastFlowCounterValue - currValue;
+        float delta = currValue - this.LastFlowCounterValue;
         this.LastFlowCounterValue = currValue;
         this.EventCounter++;
 
@@ -114,8 +138,22 @@ public class FlowSensorYFS201b implements IFlowSensor
         args.TotalVolume = (currValue * 1000) / this.PulsesPerLiter;
         args.DeltaVolume = (delta * 1000) / this.PulsesPerLiter;
         args.StartTimeMillis = this.StartTimeMillis;
-        args.CurrentTimeMillis = Gpio.millis();
+        if (Environment.IsRaspberryPiPlatform())
+        {
+            args.CurrentTimeMillis = Gpio.millis();
+        }
+        else
+        {
+            args.CurrentTimeMillis = System.currentTimeMillis();
+        }
         args.EventNumber = this.EventCounter;
+
+        Logger.getGlobal().info("Flow Sensor - EventNumber = " + args.EventNumber);
+        Logger.getGlobal().info("Flow Sensor - Counter Value = " + currValue);
+        Logger.getGlobal().info("Flow Sensor - Total Volume = " + args.TotalVolume);
+        Logger.getGlobal().info("Flow Sensor - Delta Volume = " + args.DeltaVolume);
+        Logger.getGlobal().info("Flow Sensor - StartTimeMillis = " + args.StartTimeMillis);
+        Logger.getGlobal().info("Flow Sensor - CurrentTimeMillis = " + args.CurrentTimeMillis);
 
         if (this.RaiseEventAsync)
         {
@@ -130,8 +168,15 @@ public class FlowSensorYFS201b implements IFlowSensor
     @Override
     public void Disconnect()
     {
-        Gpio.wiringPiClearISR(Gpio17);
-        this.NotifierWorker.cancel();
+        if (Environment.IsRaspberryPiPlatform())
+        {
+            Gpio.wiringPiClearISR(Gpio17);
+        }
+        
+        if (this.NotifierWorker != null)
+            this.NotifierWorker.cancel();
+        
+        this.NotifierWorker = null;
     }
 
     @Override
@@ -144,4 +189,5 @@ public class FlowSensorYFS201b implements IFlowSensor
 
         return volumen;
     }
+
 }

@@ -20,4 +20,6 @@ public interface ISwitch
     void Close();
 
     void Open();
+
+    void UpdateParameters();
 }

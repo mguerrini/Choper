@@ -23,6 +23,12 @@ public class Display
     private int CurrentLenLine1 = 0;
     private int CurrentLenLine2 = 0;
 
+    
+    public void UpdateParameters()
+    {
+        this.RealDisplay.UpdateParameters();
+    }
+    
     public void ShowBalance(float value)
     {
         this.RealDisplay.ClearLine1();
