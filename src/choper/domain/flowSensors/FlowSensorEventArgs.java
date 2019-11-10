@@ -17,6 +17,11 @@ public class FlowSensorEventArgs
     public int EventNumber;
 
     /**
+     * Cantidad de pulsos del sensos
+     */
+    public int Pulses;
+
+    /**
      * Cantidad de milisegundos al momento de conectarse el sensor
      */
     public long StartTimeMillis;
@@ -35,4 +40,5 @@ public class FlowSensorEventArgs
      * Expresa la cantidad de cm cúbicos de líquido desde que se conecto el sensor
      */
     public float TotalVolume;
+    
 }

@@ -81,26 +81,26 @@ public class Main
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
 
-            s.Open();
+            s.OpenContacts();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
             Thread.sleep(3000);
 
-            s.Close();
+            s.CloseContacts();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
             Thread.sleep(3000);
 
-            s.Open();
+            s.OpenContacts();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
             Thread.sleep(3000);
 
-            s.Close();
+            s.CloseContacts();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
 
-            s.Open();
+            s.OpenContacts();
             System.out.println("IsOpened:" + s.IsOpened());
             System.out.println("IsClosed:" + s.IsClosed());
         }

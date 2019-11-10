@@ -53,6 +53,10 @@ public class BillAndCardManager
 
         this.BillReader.Init();
         this.BillReader.Connect();
+        this.BillReader.Enabled();
+        byte[] res = this.BillReader.GetState();
+        System.out.println("State: " + res);
+        
         this.CardReader.Init();
         this.CardReader.Connect();
     }

@@ -38,7 +38,6 @@ public class FlowSensorYFS201b implements IFlowSensor
     private void IncrementFlowCounter(int pin)
     {
         this.FlowCounter++;
-        this.RaiseEventAsync = false;
     }
 
     public IEvent<FlowSensorEventArgs> GetVolumeChangedEvent()
@@ -62,6 +61,9 @@ public class FlowSensorYFS201b implements IFlowSensor
         {
             Gpio.pinMode(Gpio17, Gpio.INPUT);
             Gpio.pullUpDnControl(Gpio17, Gpio.PUD_UP);
+
+            Gpio.wiringPiClearISR(Gpio17);
+            Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
         }
     }
 
@@ -70,7 +72,8 @@ public class FlowSensorYFS201b implements IFlowSensor
     {
         if (Environment.IsRaspberryPiPlatform())
         {
-            Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
+            //Gpio.wiringPiClearISR(Gpio17);
+            //Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
             this.StartTimeMillis = Gpio.millis();
         }
         else
@@ -95,21 +98,38 @@ public class FlowSensorYFS201b implements IFlowSensor
 
             }, this.NotifyFrequency, this.NotifyFrequency);
         }
-        /*
-        long tStart = Gpio.millis();
-        long tStop = Gpio.millis();
-        long dif;
-        
-        for (int i=0; i< 60; i++)
+    }
+
+    @Override
+    public void Disconnect()
+    {
+        //if (Environment.IsRaspberryPiPlatform())
+        //{
+        //    Gpio.wiringPiClearISR(Gpio17);
+        //}
+
+        if (this.NotifierWorker != null)
         {
-            Thread.sleep(1000l);
-            tStop = Gpio.millis();
-            dif = tStop - tStart;
-            
-            System.out.println("Cantidad de pulsos: " + this.FlowCounter + ", Tiempo ms: " + dif);
-            tStart = tStop;
+            this.NotifierWorker.cancel();
         }
-         */
+
+        this.NotifierWorker = null;
+    }
+
+    public void Dispose()
+    {
+        if (Environment.IsRaspberryPiPlatform())
+        {
+            Gpio.wiringPiClearISR(Gpio17);
+        }
+    }
+
+    @Override
+    public void Reset()
+    {
+        this.FlowCounter = 0;
+        this.LastFlowCounterValue = 0;
+        this.EventCounter = 0;
     }
 
     @Override
@@ -135,6 +155,7 @@ public class FlowSensorYFS201b implements IFlowSensor
         this.EventCounter++;
 
         FlowSensorEventArgs args = new FlowSensorEventArgs();
+        args.Pulses = currValue;
         args.TotalVolume = (currValue * 1000) / this.PulsesPerLiter;
         args.DeltaVolume = (delta * 1000) / this.PulsesPerLiter;
         args.StartTimeMillis = this.StartTimeMillis;
@@ -148,13 +169,14 @@ public class FlowSensorYFS201b implements IFlowSensor
         }
         args.EventNumber = this.EventCounter;
 
+        /*
         Logger.getGlobal().info("Flow Sensor - EventNumber = " + args.EventNumber);
         Logger.getGlobal().info("Flow Sensor - Counter Value = " + currValue);
         Logger.getGlobal().info("Flow Sensor - Total Volume = " + args.TotalVolume);
         Logger.getGlobal().info("Flow Sensor - Delta Volume = " + args.DeltaVolume);
         Logger.getGlobal().info("Flow Sensor - StartTimeMillis = " + args.StartTimeMillis);
         Logger.getGlobal().info("Flow Sensor - CurrentTimeMillis = " + args.CurrentTimeMillis);
-
+         */
         if (this.RaiseEventAsync)
         {
             ((Event<FlowSensorEventArgs>) this.VolumeChanged).InvokeAsync(this, args);
@@ -166,20 +188,6 @@ public class FlowSensorYFS201b implements IFlowSensor
     }
 
     @Override
-    public void Disconnect()
-    {
-        if (Environment.IsRaspberryPiPlatform())
-        {
-            Gpio.wiringPiClearISR(Gpio17);
-        }
-        
-        if (this.NotifierWorker != null)
-            this.NotifierWorker.cancel();
-        
-        this.NotifierWorker = null;
-    }
-
-    @Override
     public float GetVolume()
     {
         float volumen = 0;
@@ -188,6 +196,17 @@ public class FlowSensorYFS201b implements IFlowSensor
         volumen = (currValue * 1000) / this.PulsesPerLiter;
 
         return volumen;
+    }
+
+    @Override
+    public void SetCalibrationFactor(int factor)
+    {
+        this.PulsesPerLiter = factor;
+    }
+
+    public void SetNotifyChangesTime(int milliseconds)
+    {
+        this.NotifyFrequency = milliseconds;
     }
 
 }

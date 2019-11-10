@@ -3,23 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain.switches;
+package choper.domain;
 
 /**
  *
  * @author mguerrini
  */
-public interface ISwitch
+public enum ChoperStatusType
 {
-    void Init();
-
-    boolean IsClosed();
-
-    boolean IsOpened();
-
-    void CloseContacts();
-
-    void OpenContacts();
-
-    void UpdateParameters();
+    Calibration,
+    Initial,
+    Ready
 }

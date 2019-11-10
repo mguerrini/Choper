@@ -7,8 +7,11 @@ choper.domain.moneyReaders.MoneyReaderMachineDataReceivedEventArgs
 choper.platform.events.EventArgs
 ||:choper.domain.moneyReaders.MoneyReaderMachineProvider
 choper.domain.moneyReaders.MoneyReaderMachineProvider
+choper.platform.ConfigurationProvider
 choper.domain.moneyReaders.MoneyReaderMachine
+java.lang.Boolean
 java.lang.Object
+choper.domain.moneyReaders.NullMoneyReaderMachine
 ||:choper.domain.displays.I2CLCD
 java.io.PrintStream
 choper.domain.displays.I2CLCD
@@ -36,6 +39,11 @@ java.lang.Object
 choper.domain.Display
 java.lang.String
 java.lang.invoke.StringConcatFactory
+||:choper.domain.moneyReaders.NullMoneyReaderMachine
+choper.domain.moneyReaders.IMoneyReaderMachine
+java.lang.Object
+choper.platform.events.Event
+choper.domain.moneyReaders.NullMoneyReaderMachine
 ||:choper.domain.flowSensors.FlowSensorYFS201b
 choper.domain.flowSensors.FlowSensorYFS201b$1
 java.io.PrintStream
@@ -46,7 +54,6 @@ java.lang.System
 java.lang.invoke.MethodHandles
 java.util.Timer
 choper.platform.events.Event
-java.util.logging.Logger
 choper.domain.flowSensors.FlowSensorYFS201b
 java.lang.Integer
 choper.domain.flowSensors.IFlowSensor
@@ -67,7 +74,9 @@ choper.domain.flowSensors.IFlowSensor
 java.lang.Throwable
 java.lang.Float
 java.lang.invoke.LambdaMetafactory
+java.net.URLDecoder
 java.lang.System
+java.net.URL
 java.lang.Integer
 java.util.ArrayList
 java.util.logging.Level
@@ -76,7 +85,9 @@ java.lang.Long
 java.util.Map
 java.lang.Boolean
 java.lang.String
+java.net.URI
 java.nio.file.Path
+java.io.PrintStream
 java.util.Map$Entry
 java.lang.invoke.MethodHandles$Lookup
 java.util.Properties
@@ -88,11 +99,15 @@ java.io.IOException
 java.io.FileInputStream
 java.util.logging.Logger
 java.io.FileNotFoundException
+java.lang.Exception
+java.io.File
 java.util.List
 java.util.AbstractMap
 java.util.AbstractMap$SimpleEntry
+java.security.ProtectionDomain
 java.lang.Object
 java.lang.Class
+java.security.CodeSource
 java.lang.invoke.StringConcatFactory
 java.util.Collections
 ||:choper.domain.OperationType
@@ -364,8 +379,8 @@ java.lang.Integer
 choper.domain.displays.Display16x2Provider
 java.util.logging.Level
 choper.domain.flowSensors.IFlowSensor
-choper.domain.OperationType
 choper.platform.ConfigurationProvider
+choper.domain.OperationType
 java.lang.Long
 choper.domain.flowSensors.FlowSensorProvider
 choper.domain.ChoperMachine$1
@@ -384,8 +399,10 @@ choper.domain.switches.ISwitch
 choper.domain.ChoperMachine
 choper.domain.displays.IDisplay16x2
 java.lang.InterruptedException
+choper.domain.ChoperStatusType
 choper.domain.moneyReaders.IMoneyReaderMachine
 java.lang.Object
+java.lang.invoke.StringConcatFactory
 choper.domain.flowSensors.FlowSensorEventArgs
 ||:choper.platform.strings.StringUtil
 choper.platform.strings.StringUtil
@@ -435,6 +452,10 @@ choper.domain.test.BillAndCardManager
 [Lchoper.domain.DisplayTextAlign;
 java.lang.Enum
 choper.domain.DisplayTextAlign
+||:choper.domain.ChoperStatusType
+[Lchoper.domain.ChoperStatusType;
+java.lang.Enum
+choper.domain.ChoperStatusType
 ||:choper.domain.moneyReaders.IMoneyReaderMachine
 choper.domain.moneyReaders.IMoneyReaderMachine
 java.lang.Object
@@ -462,6 +483,7 @@ java.lang.Exception
 java.util.List
 choper.domain.ChoperMachine
 choper.platform.strings.StringUtil
+choper.domain.ChoperStatusType
 java.lang.Object
 java.lang.Class
 choper.ChoperConsole

@@ -350,6 +350,9 @@ public class SmartCardReader implements ISmartCardReader
     @Override
     public float GetBalance()
     {
+        if (this.CurrentBalance == null)
+            return 0;
+        
         return this.CurrentBalance;
     }
 

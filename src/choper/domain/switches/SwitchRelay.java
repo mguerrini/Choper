@@ -46,11 +46,11 @@ public class SwitchRelay implements ISwitch
         {
             if (this.Swap)
             {
-                return Gpio.digitalRead(GpioNumber) <= Gpio.HIGH;
+                return Gpio.digitalRead(GpioNumber) <= Gpio.LOW ;
             }
             else
             {
-                return Gpio.digitalRead(GpioNumber) <= Gpio.LOW;
+                return Gpio.digitalRead(GpioNumber) <= Gpio.HIGH;
             }
         }
 
@@ -64,11 +64,11 @@ public class SwitchRelay implements ISwitch
         {
             if (this.Swap)
             {
-                return Gpio.digitalRead(GpioNumber) >= Gpio.LOW;
+                return Gpio.digitalRead(GpioNumber) >= Gpio.HIGH;
             }
             else
             {
-                return Gpio.digitalRead(GpioNumber) >= Gpio.HIGH;
+                return Gpio.digitalRead(GpioNumber) >= Gpio.LOW;
             }
         }
 
@@ -76,17 +76,17 @@ public class SwitchRelay implements ISwitch
     }
 
     @Override
-    public void Open()
+    public void OpenContacts()
     {
         if (Environment.IsRaspberryPiPlatform())
         {
             if (this.Swap)
             {
-                Gpio.digitalWrite(GpioNumber, Gpio.HIGH);
+                Gpio.digitalWrite(GpioNumber, Gpio.LOW);
             }
             else
             {
-                Gpio.digitalWrite(GpioNumber, Gpio.LOW);
+                Gpio.digitalWrite(GpioNumber, Gpio.HIGH);
             }
             return;
         }
@@ -95,14 +95,14 @@ public class SwitchRelay implements ISwitch
     }
 
     @Override
-    public void Close()
+    public void CloseContacts()
     {
         if (Environment.IsRaspberryPiPlatform())
         {
             if (this.Swap)
-                Gpio.digitalWrite(GpioNumber, Gpio.LOW);
-            else
                 Gpio.digitalWrite(GpioNumber, Gpio.HIGH);
+            else
+                Gpio.digitalWrite(GpioNumber, Gpio.LOW);
         }
 
         this.IsOpened = false;

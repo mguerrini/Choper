@@ -5,21 +5,33 @@
  */
 package choper.domain.moneyReaders;
 
+import choper.platform.ConfigurationProvider;
+
 /**
  *
  * @author max22
  */
 public class MoneyReaderMachineProvider
 {
-    public  static MoneyReaderMachineProvider Instance = new   MoneyReaderMachineProvider();
-    
+    public static MoneyReaderMachineProvider Instance = new MoneyReaderMachineProvider();
+
     private IMoneyReaderMachine SingleInstance;
-    
+
     public IMoneyReaderMachine Get()
     {
         if (this.SingleInstance == null)
-            this.SingleInstance = new MoneyReaderMachine();
-        
+        {
+            boolean enabled = ConfigurationProvider.Instance.GetBool("MoneyReaderMachine", "Enabled");
+            if (enabled)
+            {
+                this.SingleInstance = new MoneyReaderMachine();
+            }
+            else
+            {
+                this.SingleInstance = new NullMoneyReaderMachine();
+            }
+        }
+
         return this.SingleInstance;
     }
 }

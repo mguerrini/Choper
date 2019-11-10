@@ -22,8 +22,14 @@ public interface IFlowSensor
 
     void Disconnect();
 
+    void SetCalibrationFactor(int factor);
+
+
     void UpdateParameters();
 
     float GetVolume();
 
+    void Reset();
+
+    void Dispose();
 }

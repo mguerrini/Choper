@@ -29,6 +29,31 @@ public class Display
         this.RealDisplay.UpdateParameters();
     }
     
+        public void ShowPulses(int pulses)
+    {
+        this.RealDisplay.ClearLine1();
+
+        String newLine = "Pulses: " + pulses;
+
+        this.CurrentLenLine1 = newLine.length();
+        this.RealDisplay.ShowLine1(newLine);
+    }
+    
+    public void UpdatePulses(int pulses)
+    {
+        int curLen = this.CurrentLenLine1;
+        String num = String.valueOf(pulses);
+        this.CurrentLenLine1 = ("Pulses: " + pulses).length();
+
+        while ((num.length() + 8) < curLen)
+        {
+            num += " ";
+        }
+
+        this.RealDisplay.ShowLine1(8, num);
+    }
+    
+        
     public void ShowBalance(float value)
     {
         this.RealDisplay.ClearLine1();

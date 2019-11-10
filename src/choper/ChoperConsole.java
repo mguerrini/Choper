@@ -6,6 +6,7 @@
 package choper;
 
 import choper.domain.ChoperMachine;
+import choper.domain.ChoperStatusType;
 import choper.domain.Environment;
 import choper.platform.ConfigurationProvider;
 import choper.platform.strings.StringUtil;
@@ -46,6 +47,10 @@ public class ChoperConsole
         {
             try
             {
+                            //this.Machine.StartCalibration();
+            //ChoperStatusType st = this.Machine.GetStatus();
+            //System.out.println("Status: " + st.toString());
+                
                 cmd = reader.readLine();
                 this.Finish = "quit".equalsIgnoreCase(cmd) || "exit".equalsIgnoreCase(cmd);
 
@@ -55,40 +60,53 @@ public class ChoperConsole
                 }
 
                 String[] split = cmd.split(" ");
-
                 if (StringUtil.IsNullOrEmpty(split[0]))
                 {
                     System.out.println("Comando inválido!");
                     continue;
                 }
-
-                if (split[0].equalsIgnoreCase("clear"))
-                {
-                    this.ShowConfiguration(split);
-                }
-                else if (split[0].equalsIgnoreCase("card"))
+                if (split[0].equalsIgnoreCase("card"))
                 {
                     this.ProcessCardCommands(split);
                 }
-                else if (split[0].equalsIgnoreCase("config"))
+
+                if (this.Machine.GetStatus() == ChoperStatusType.Calibration)
                 {
-                    this.ShowConfiguration(split);
-                }
-                else if (split[0].equalsIgnoreCase("reset"))
-                {
-                    this.Machine.Reset();
-                }
-                else if (split[0].equalsIgnoreCase("set"))
-                {
-                    this.ProcessSetCommand(split);
-                }
-                else if (split[0].equalsIgnoreCase("get"))
-                {
-                    this.ProcessGetCommand(split);
+                    this.ProcessCalibrationCommand(split);
                 }
                 else
                 {
-                    System.out.println("Comando inválido!");
+                    if (split[0].equalsIgnoreCase("clear"))
+                    {
+                    }
+                    else if (split[0].equalsIgnoreCase("calibrate"))
+                    {
+                        this.ProcessCalibrationCommand(split);
+                    }
+                    else if (split[0].equalsIgnoreCase("config"))
+                    {
+                        this.ShowConfiguration(split);
+                    }
+                    else if (split[0].equalsIgnoreCase("reset"))
+                    {
+                        this.Machine.Reset();
+                    }
+                    else if (split[0].equalsIgnoreCase("update"))
+                    {
+                        this.Machine.UpdateParameters();
+                    }
+                    else if (split[0].equalsIgnoreCase("set"))
+                    {
+                        this.ProcessSetCommand(split);
+                    }
+                    else if (split[0].equalsIgnoreCase("get"))
+                    {
+                        this.ProcessGetCommand(split);
+                    }
+                    else
+                    {
+                        System.out.println("Comando inválido!");
+                    }
                 }
             }
             catch (Exception ex)
@@ -98,6 +116,19 @@ public class ChoperConsole
         }
 
         this.Machine.Disconnect();
+    }
+
+    public void Stop()
+    {
+        this.Finish = true;
+        try
+        {
+            System.console().reader().close();
+        }
+        catch (IOException ex)
+        {
+            Logger.getLogger(ChoperConsole.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     private void ShowConfiguration(String[] parameters)
@@ -147,7 +178,7 @@ public class ChoperConsole
                 System.out.println("Comando inválido!");
                 return;
             }
-            
+
             value = Float.parseFloat(parameters[2]);
             if (value == null)
             {
@@ -181,7 +212,9 @@ public class ChoperConsole
             Float value = ConfigurationProvider.Instance.GetFloat(ChoperMachine.class, "Price");
             System.out.println("Valor por litro: $" + value.toString());
         }
-        else if (key.equalsIgnoreCase("PulsesPerLiter") || key.equalsIgnoreCase("FlowSensor.PulsesPerLiter"))
+        else if (key.equalsIgnoreCase("PulsesPerLiter")
+                || key.equalsIgnoreCase("FlowSensor.PulsesPerLiter")
+                || key.equalsIgnoreCase("pulses"))
         {
             Integer value = ConfigurationProvider.Instance.GetInt("FlowSensor.PulsesPerLiter");
             System.out.println("Pulsos por litro: " + value.toString());
@@ -189,6 +222,11 @@ public class ChoperConsole
         else if (key.equalsIgnoreCase("loglevel"))
         {
             System.out.println("Log Level: " + Logger.getGlobal().getLevel());
+        }
+        else
+        {
+            Object val = ConfigurationProvider.Instance.Get(key);
+            System.out.println(key + " = " + val.toString());
         }
     }
 
@@ -207,27 +245,29 @@ public class ChoperConsole
             try
             {
                 Float price = Float.parseFloat(value);
-                ConfigurationProvider.Instance.Save(ChoperMachine.class, "Price", price);
-                price = ConfigurationProvider.Instance.GetFloat(ChoperMachine.class, "Price");
+                this.Machine.ModifyConfiguration("ChoperMachine", "Price", value);
+                //price = ConfigurationProvider.Instance.GetFloat(ChoperMachine.class, "Price");
                 System.out.println("Nuevo Valor por litro: $" + price.toString());
 
-                this.Machine.UpdateParameters();
+                //this.Machine.UpdateParameters();
             }
             catch (Exception ex)
             {
                 System.out.println("Valor inválido");
             }
         }
-        else if (key.equalsIgnoreCase("PulsesPerLiter") || key.equalsIgnoreCase("FlowSensor.PulsesPerLiter"))
+        else if (key.equalsIgnoreCase("PulsesPerLiter")
+                || key.equalsIgnoreCase("FlowSensor.PulsesPerLiter")
+                || key.equalsIgnoreCase("pulses"))
         {
             try
             {
                 Integer pulses = Integer.parseInt(value);
-                ConfigurationProvider.Instance.Save("FlowSensor.PulsesPerLiter", pulses);
-                pulses = ConfigurationProvider.Instance.GetInt("FlowSensor.PulsesPerLiter");
+                this.Machine.ModifyConfiguration("FlowSensor.PulsesPerLiter", pulses);
+                //pulses = ConfigurationProvider.Instance.GetInt("FlowSensor.PulsesPerLiter");
                 System.out.println("Nueva cantidad de pulsos por litro: " + pulses.toString());
 
-                this.Machine.UpdateParameters();
+                //this.Machine.UpdateParameters();
             }
             catch (Exception ex)
             {
@@ -247,18 +287,63 @@ public class ChoperConsole
                 System.out.println("Valor inválido");
             }
         }
+        else
+        {
+            if (ConfigurationProvider.Instance.Exists(key))
+                this.Machine.ModifyConfiguration(key, value);
+            else
+                System.out.println("Parámetro de configuración inválido");
+        }
     }
 
-    public void Stop()
+    private void ProcessCalibrationCommand(String[] parameters)
     {
-        this.Finish = true;
-        try
+        String key = parameters[0];
+
+        if (StringUtil.IsNullOrEmpty(key))
         {
-            System.console().reader().close();
+            return;
         }
-        catch (IOException ex)
+
+        if (key.equalsIgnoreCase("calibrate"))
         {
-            Logger.getLogger(ChoperConsole.class.getName()).log(Level.SEVERE, null, ex);
+            this.Machine.StartCalibration();
+            ChoperStatusType st = this.Machine.GetStatus();
+            System.out.println("Status: " + st.toString());
+        }
+        else if (key.equalsIgnoreCase("cancel"))
+        {
+            this.Machine.CancelCalibration();
+            ChoperStatusType st = this.Machine.GetStatus();
+            System.out.println("Status: " + st.toString());
+        }
+        else if (key.equalsIgnoreCase("accept") || key.equalsIgnoreCase("finish"))
+        {
+            this.Machine.FinishCalibration();
+            ChoperStatusType st = this.Machine.GetStatus();
+            System.out.println("Status: " + st.toString());
+        }
+        else if (parameters[0].equalsIgnoreCase("set"))
+        {
+            this.ProcessSetCommand(parameters);
+        }
+        else if (parameters[0].equalsIgnoreCase("get"))
+        {
+            this.ProcessGetCommand(parameters);
+        }
+        else if (parameters[0].equalsIgnoreCase("clean")||parameters[0].equalsIgnoreCase("clear"))
+        {
+            this.Machine.FlowSensorReset();
+        }
+        else if (parameters[0].equalsIgnoreCase("open"))
+        {
+            this.Machine.OpenFlowValve();
+            System.out.println("Válvula abierta");
+        }
+        else if (parameters[0].equalsIgnoreCase("close"))
+        {
+            this.Machine.CloseFlowValve();
+            System.out.println("Válvula cerrada");
         }
     }
 }

@@ -32,17 +32,24 @@ public class ChoperMachine
     private IFlowSensor FlowSensor;
     private IMoneyReaderMachine BillReader;
     private ISmartCardReader SmartCardReader;
-    private ISwitch FlowValve;
+    private ISwitch SwitchFlowValve;
 
     private float LiterPrice = 100; //precio del litro de cerveza
     private int UpdateVolumeFrequency = 50; //cm3
     private long WriteBalanceFrequency = 1000; //milisegundos
 
     private TaskQueue OperationTask;
+    private ChoperStatusType Status;
 
     public ChoperMachine()
     {
         this.OperationTask = new TaskQueue(this::DoTask);
+        this.Status = ChoperStatusType.Initial;
+    }
+
+    public ChoperStatusType GetStatus()
+    {
+        return this.Status;
     }
 
     public void Init()
@@ -70,7 +77,7 @@ public class ChoperMachine
             this.FlowSensor = FlowSensorProvider.Instance.Get();
             this.BillReader = MoneyReaderMachineProvider.Instance.Get();
             this.SmartCardReader = SmartCardReaderProvider.Instance.Get();
-            this.FlowValve = SwitchProvider.Instance.Get();
+            this.SwitchFlowValve = SwitchProvider.Instance.Get();
 
             this.Display.ShowMessage("Caudalímetro...");
             this.FlowSensor.Init();
@@ -94,7 +101,7 @@ public class ChoperMachine
             Thread.sleep(200);
 
             this.Display.ShowMessage("Válvula...");
-            this.FlowValve.Init();
+            this.SwitchFlowValve.Init();
             this.Display.ShowMessage("Válvula: OK");
             Thread.sleep(200);
             this.Display.ShowMessage("Inic. fin");
@@ -109,23 +116,27 @@ public class ChoperMachine
 
     public void Connect()
     {
-        this.FlowValve.Open();
+        this.SwitchFlowValve.OpenContacts();
 
         this.SmartCardReader.Connect();
         this.BillReader.Connect();
+
+        this.Status = ChoperStatusType.Ready;
 
         this.ShowReadyMessage();
     }
 
     public void Disconnect()
     {
-        this.FlowValve.Open();
+        this.SwitchFlowValve.OpenContacts();
 
         this.SmartCardReader.Disconnect();
         this.BillReader.Disconnect();
         this.FlowSensor.Disconnect();
+        this.FlowSensor.Dispose();
     }
 
+    
     public void Reset()
     {
         this.Disconnect();
@@ -144,6 +155,105 @@ public class ChoperMachine
         this.ReInit();
 
         this.Connect();
+    }
+
+    public void StartCalibration()
+    {
+        if (this.Status == ChoperStatusType.Calibration || this.Status == ChoperStatusType.Initial)
+        {
+            return;
+        }
+
+        this.Display.ShowPulses(0);
+        this.Display.ShowVolume(0f);
+
+        ConfigurationProvider.Instance.BeginTemporalConfiguration();
+        this.FlowSensor.Connect();
+        this.SwitchFlowValve.CloseContacts(); //abro la valvula
+        this.Status = ChoperStatusType.Calibration;
+    }
+
+    public void FinishCalibration()
+    {
+        if (this.Status != ChoperStatusType.Calibration)
+        {
+            return;
+        }
+
+        ConfigurationProvider.Instance.FinishTemporalConfiguration();
+        this.FlowSensor.Disconnect();
+        this.SwitchFlowValve.OpenContacts();
+
+        this.UpdateParameters();
+        this.Status = ChoperStatusType.Ready;
+
+        this.ShowReadyMessage();
+    }
+
+    public void CancelCalibration()
+    {
+        if (this.Status != ChoperStatusType.Calibration)
+        {
+            return;
+        }
+
+        ConfigurationProvider.Instance.CancelTemporalConfiguration();
+        this.FlowSensor.Disconnect();
+        this.SwitchFlowValve.OpenContacts();
+
+        this.UpdateParameters();
+        this.Status = ChoperStatusType.Ready;
+        this.ShowReadyMessage();
+    }
+
+    public void OpenFlowValve()
+    {
+        if (this.Status == ChoperStatusType.Calibration)
+        {
+            this.SwitchFlowValve.CloseContacts();
+        }
+    }
+
+    public void CloseFlowValve()
+    {
+        if (this.Status == ChoperStatusType.Calibration)
+        {
+            this.SwitchFlowValve.OpenContacts();
+        }
+    }
+
+    public void SetFlowSensor(int factor)
+    {
+        if (this.Status == ChoperStatusType.Calibration)
+        {
+            this.FlowSensor.SetCalibrationFactor(factor);
+        }
+    }
+
+    public void FlowSensorReset()
+    {
+        if (this.Status == ChoperStatusType.Calibration)
+        {
+            this.FlowSensor.Reset();
+
+            this.Display.UpdateVolume(0);
+            this.Display.UpdatePulses(0);
+        }
+    }
+
+    public void ModifyConfiguration(String component, String key, Object value)
+    {
+        this.ModifyConfiguration(component + "." + key, value);
+    }
+
+    public void ModifyConfiguration(String key, Object value)
+    {
+        ConfigurationProvider.Instance.Save(key, value);
+
+        if (this.Status == ChoperStatusType.Calibration)
+        {
+            this.UpdateParameters();
+        }
     }
 
     public void CleanMoney()
@@ -167,10 +277,10 @@ public class ChoperMachine
         {
             return null;
         }
-        
+
         return this.SmartCardReader.GetBalance();
     }
-    
+
     public void AddMoney(Float value)
     {
         if (!this.SmartCardReader.IsCardPresent())
@@ -218,7 +328,7 @@ public class ChoperMachine
         this.FlowSensor.UpdateParameters();
         this.BillReader.UpdateParameters();
         this.SmartCardReader.UpdateParameters();
-        this.FlowValve.UpdateParameters();
+        this.SwitchFlowValve.UpdateParameters();
     }
 
     private void OnCardInserted(Object source, EventArgs args)
@@ -235,12 +345,14 @@ public class ChoperMachine
 
             this.OperationTask.Enqueue(op);
 
-            //conecto el caudalimetro
-            this.FlowSensor.Connect();
+            if (this.Status == ChoperStatusType.Ready)
+            {
+                //conecto el caudalimetro
+                this.FlowSensor.Connect();
 
-            //abro la valvula
-            this.FlowValve.Open();
-
+                //abro la valvula
+                this.SwitchFlowValve.CloseContacts(); //activo el switch
+            }
         }
         catch (Exception ex)
         {
@@ -250,19 +362,22 @@ public class ChoperMachine
 
     private void OnCardRemoved(Object source, EventArgs args)
     {
-        //cierro la valvula
-        this.FlowValve.Close();
-
         //la tarjeta se saco....cancelo la operacion
         this.BillReader.Disabled();
 
-        //conecto el caudalimetro
-        this.FlowSensor.Disconnect();
+        if (this.Status == ChoperStatusType.Ready)
+        {
+            //cierro la valvula
+            this.SwitchFlowValve.OpenContacts();
 
-        //muestro el mensaje de la maquina
-        ChoperOperation op = new ChoperOperation();
-        op.Operation = OperationType.CardRemoved;
-        this.OperationTask.Enqueue(op);
+            //conecto el caudalimetro
+            this.FlowSensor.Disconnect();
+
+            //muestro el mensaje de la maquina
+            ChoperOperation op = new ChoperOperation();
+            op.Operation = OperationType.CardRemoved;
+            this.OperationTask.Enqueue(op);
+        }
     }
 
     private void OnBillTicketReady(Object source, Integer bill)
@@ -374,26 +489,41 @@ public class ChoperMachine
     private void OnVolumeChange(FlowSensorEventArgs data)
     {
         //registro cada 1 segundo
-        if (data.EventNumber == 1)
+        if (this.Status == ChoperStatusType.Ready)
         {
-            this.UpdateOnFirstVolumeChanged(data);
-            return;
-        }
-
-        if ((data.CurrentTimeMillis - this.LastUpdatedTimeInMilliseconds) >= this.WriteBalanceFrequency)
-        {
-            this.UpdateOnNonFirstVolumeChanged(data);
-        }
-        else
-        {
-            if ((data.TotalVolume - this.LastUpdatedVolumen) > this.UpdateVolumeFrequency)
+            if (data.EventNumber == 1)
             {
-                //actualizo el volumen
-                this.LastUpdatedVolumen = data.TotalVolume;
-                this.Display.UpdateVolume(data.TotalVolume);
+                this.UpdateOnFirstVolumeChanged(data);
+                return;
             }
-        }
 
+            if ((data.CurrentTimeMillis - this.LastUpdatedTimeInMilliseconds) >= this.WriteBalanceFrequency)
+            {
+                this.UpdateOnNonFirstVolumeChanged(data);
+            }
+            else
+            {
+                if ((data.TotalVolume - this.LastUpdatedVolumen) > this.UpdateVolumeFrequency)
+                {
+                    //actualizo el volumen
+                    this.LastUpdatedVolumen = data.TotalVolume;
+                    this.Display.UpdateVolume(data.TotalVolume);
+                }
+            }
+
+            System.out.println("Flow Sensor - Pulses Value = " + data.Pulses);
+            System.out.println("Flow Sensor - Total Volume = " + data.TotalVolume);
+        }
+        else if (this.Status == ChoperStatusType.Calibration)
+        {
+            this.Display.UpdatePulses(data.Pulses);
+            this.Display.UpdateVolume(data.TotalVolume);
+
+            System.out.println("Flow Sensor - EventNumber = " + data.EventNumber);
+            System.out.println("Flow Sensor - Pulses Value = " + data.Pulses);
+            System.out.println("Flow Sensor - Total Volume = " + data.TotalVolume);
+            System.out.println("Flow Sensor - Delta Volume = " + data.DeltaVolume);
+        }
     }
 
     private void UpdateOnFirstVolumeChanged(FlowSensorEventArgs data)
@@ -428,6 +558,7 @@ public class ChoperMachine
 
     private boolean UpdateSaldo(float totalVolume)
     {
+
         //calculo el monto total consumido
         float totalAmount = this.CalculateAmountFor(totalVolume);
         //le resto el monto ya cobrado

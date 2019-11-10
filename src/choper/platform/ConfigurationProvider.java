@@ -6,11 +6,15 @@
 package choper.platform;
 
 import choper.domain.flowSensors.FlowSensorYFS201b;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.file.Path;
+import java.security.CodeSource;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,64 +35,77 @@ public class ConfigurationProvider
 
     //private String ConfigurationFileName = "src/resources/config.properties";
     //private String CustomConfigurationFileName = "src/resources/custom.properties";
-    private String ConfigurationFileName = "resources/config.properties";
+    //private String TemporalConfigurationFileName = "src/resources/temporal.properties";
+    private String DefaultConfigurationFileName = "resources/config.properties";
     private String CustomConfigurationFileName = "resources/custom.properties";
+    private String TemporalConfigurationFileName = "resources/temporal.properties";
 
-    private Properties _properties;
+    private Properties _defaultProperties;
     private Properties _customProperties;
+    private Properties _temporalProperties;
 
-    private String GetFilename(String fileNameOnly)
+    private Properties _currentProperties;
+    private boolean IsTemporal = false;
+
+    public ConfigurationProvider()
     {
-        String workingDir = System.getProperty("user.dir");
-        String filename = Path.of(workingDir, fileNameOnly).toString();
-        Logger.getGlobal().log(Level.FINEST, filename);
-        return filename;
+        this.LoadProperties();
+        this.SetCurrentProperties(_defaultProperties, _customProperties);
     }
 
-    private Properties GetProperties()
+    private void SetCurrentProperties(Properties... properties)
     {
-        if (_properties == null)
+
+        _currentProperties = new Properties();
+
+        for (int i = 0; i < properties.length; i++)
         {
-
-            Properties defaultProp = this.ReadProperties(ConfigurationFileName);
-            Properties customProp = this.ReadProperties(CustomConfigurationFileName);
-
-            Set<Entry<Object, Object>> entries = customProp.entrySet();
+            Set<Entry<Object, Object>> entries = properties[i].entrySet();
 
             for (Entry<Object, Object> entry : entries)
             {
-                if (defaultProp.containsKey(entry.getKey()))
+                if (_currentProperties.containsKey(entry.getKey()))
                 {
-                    defaultProp.replace(entry.getKey(), entry.getValue());
+                    _currentProperties.replace(entry.getKey(), entry.getValue());
                 }
                 else
                 {
-                    defaultProp.put(entry.getKey(), entry.getValue());
+                    _currentProperties.put(entry.getKey(), entry.getValue());
                 }
-
             }
-
-            _properties = defaultProp;
-            _customProperties = customProp;
         }
-
-        return _properties;
     }
 
-    private Properties GetCustomProperties()
+    private void LoadProperties()
     {
-        if (_customProperties == null)
-        {
-            this.GetProperties();
-        }
+        Properties defaultProp = this.ReadProperties(DefaultConfigurationFileName);
+        Properties customProp = this.ReadProperties(CustomConfigurationFileName);
+        /*
+        Set<Entry<Object, Object>> entries = customProp.entrySet();
 
-        return _customProperties;
+        for (Entry<Object, Object> entry : entries)
+        {
+            if (defaultProp.containsKey(entry.getKey()))
+            {
+                defaultProp.replace(entry.getKey(), entry.getValue());
+            }
+            else
+            {
+                defaultProp.put(entry.getKey(), entry.getValue());
+            }
+
+        }
+         */
+        _defaultProperties = defaultProp;
+        _customProperties = customProp;
     }
 
     private Properties ReadProperties(String file)
     {
         Properties aux = new Properties();
-        String filename = this.GetFilename(file);
+        String filename = this.GetFullFileName(file);
+        Logger.getGlobal().log(Level.INFO, filename);
+
         FileInputStream ip = null;
         try
         {
@@ -122,6 +139,93 @@ public class ConfigurationProvider
         return aux;
     }
 
+    private String GetFullFileName(String filenameOnly)
+    {
+        try
+        {
+            String path = this.GetContainerFolder(this.getClass());
+
+            //String workingDir = System.getProperty("user.dir");
+            //String filename = Path.of(workingDir, filenameOnly).toString();
+            String filename = Path.of(path, filenameOnly).toString();
+            System.out.println("Configuration File: " + filename);
+            return filename;
+        }
+        catch (Exception ex)
+        {
+            Logger.getLogger(ConfigurationProvider.class.getName()).log(Level.SEVERE, null, ex);
+            return filenameOnly;
+        }
+    }
+
+    private String GetContainerFolder(Class aclass) throws Exception
+    {
+        CodeSource codeSource = aclass.getProtectionDomain().getCodeSource();
+
+        File jarFile;
+
+        if (codeSource.getLocation() != null)
+        {
+            jarFile = new File(codeSource.getLocation().toURI().getPath());
+        }
+        else
+        {
+            String path = aclass.getResource(aclass.getSimpleName() + ".class").getPath();
+            String jarFilePath = path.substring(path.indexOf(":") + 1, path.indexOf("!"));
+            jarFilePath = URLDecoder.decode(jarFilePath, "UTF-8");
+            jarFile = new File(jarFilePath);
+        }
+
+        if (jarFile.getAbsolutePath().endsWith(".jar"))
+        {
+            return jarFile.getParentFile().getAbsolutePath();
+        }
+        else
+        {
+            return jarFile.getPath();
+        }
+
+    }
+
+    private Properties GetProperties()
+    {
+        return _currentProperties;
+    }
+
+    public void BeginTemporalConfiguration()
+    {
+        this.IsTemporal = true;
+    }
+
+    public void CancelTemporalConfiguration()
+    {
+        this.SetCurrentProperties(_defaultProperties, _customProperties);
+
+        this.IsTemporal = false;
+    }
+
+    public void FinishTemporalConfiguration()
+    {
+        //recorro la configuracion y actualizo la custom
+        List<Entry<String, Object>> entries = this.GetAll();
+
+        for (Entry<String, Object> entry : entries)
+        {
+            this.SetCustomProperties(entry.getKey(), entry.getValue());
+        }
+
+        this.DoSave(_customProperties, CustomConfigurationFileName);
+
+        this.SetCurrentProperties(_defaultProperties, _customProperties);
+
+        this.IsTemporal = false;
+    }
+
+    public boolean Exists(String key)
+    {
+        return this.GetProperties().containsKey(key);
+    }
+
     public List<Entry<String, Object>> GetAll()
     {
         List<Entry<String, Object>> output = new ArrayList<>();
@@ -133,7 +237,7 @@ public class ConfigurationProvider
             output.add(item);
         }
 
-        Collections.sort(output, (c1, c2) ->  c1.getKey().compareTo(c2.getKey()));  
+        Collections.sort(output, (c1, c2) -> c1.getKey().compareTo(c2.getKey()));
 
         return output;
     }
@@ -142,7 +246,7 @@ public class ConfigurationProvider
     {
         if (this.GetProperties().containsKey(key))
         {
-            String val = this.GetProperties().get(key).toString();
+            String val = this.GetProperties().get(key).toString().trim();
             return Integer.parseInt(val);
         }
         else
@@ -175,7 +279,7 @@ public class ConfigurationProvider
     {
         if (this.GetProperties().containsKey(key))
         {
-            String val = this.GetProperties().get(key).toString();
+            String val = this.GetProperties().get(key).toString().trim();
             return Long.parseLong(val);
         }
         else
@@ -208,7 +312,7 @@ public class ConfigurationProvider
     {
         if (this.GetProperties().containsKey(key))
         {
-            String val = this.GetProperties().get(key).toString();
+            String val = this.GetProperties().get(key).toString().trim();
             return Float.parseFloat(val);
         }
         else
@@ -266,8 +370,20 @@ public class ConfigurationProvider
     {
         if (this.GetProperties().containsKey(key))
         {
-            String bool = this.GetProperties().get(key).toString();
+            String bool = this.GetProperties().get(key).toString().trim();
             return Boolean.parseBoolean(bool);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    public Object Get(String key)
+    {
+        if (this.GetProperties().containsKey(key))
+        {
+            return this.GetProperties().get(key);
         }
         else
         {
@@ -295,32 +411,93 @@ public class ConfigurationProvider
         this.Save(this.getClassName(modulo) + "." + key + "_" + subKey, value);
     }
 
+    private void SetValue(String key, Object value, boolean isTemporal, boolean save)
+    {
+        if (value == null)
+        {
+            return;
+        }
+
+        if (_currentProperties.containsKey(key))
+        {
+            _currentProperties.replace(key, value.toString());
+        }
+        else
+        {
+            _currentProperties.put(key, value.toString());
+        }
+
+        String fileName;
+        Properties prop;
+
+        if (isTemporal)
+        {
+            fileName = this.TemporalConfigurationFileName;
+            prop = this._currentProperties;
+
+            //no hago nada...ya esta en currentProperties.
+        }
+        else
+        {
+            fileName = this.CustomConfigurationFileName;
+            prop = this._customProperties;
+
+            this.SetCustomProperties(key, value);
+        }
+
+        if (save && !isTemporal)
+        {
+            this.DoSave(prop, fileName);
+        }
+    }
+
+    private void SetCustomProperties(String key, Object value)
+    {
+        if (this._defaultProperties.containsKey(key))
+        {
+            Object curr = _defaultProperties.get(key);
+            if (curr.equals(value))
+            {
+                _customProperties.remove(key);
+            }
+            else
+            {
+                if (this._customProperties.containsKey(key))
+                {
+                    this._customProperties.replace(key, value.toString());
+                }
+                else
+                {
+                    this._customProperties.put(key, value.toString());
+                }
+            }
+        }
+        else
+        {
+            if (this._customProperties.containsKey(key))
+            {
+                this._customProperties.replace(key, value.toString());
+            }
+            else
+            {
+                this._customProperties.put(key, value.toString());
+            }
+        }
+    }
+
     public void Save(String key, Object value)
     {
-        if (this.GetProperties().containsKey(key))
-        {
-            this.GetProperties().replace(key, value.toString());
-        }
-        else
-        {
-            this.GetProperties().put(key, value.toString());
-        }
+        this.SetValue(key, value, this.IsTemporal, true);
+    }
 
-        if (this.GetCustomProperties().containsKey(key))
-        {
-            this.GetCustomProperties().replace(key, value.toString());
-        }
-        else
-        {
-            this.GetCustomProperties().put(key, value.toString());
-        }
-
+    private void DoSave(Properties prop, String filename)
+    {
         FileOutputStream o = null;
+        String fullfilename = this.GetFullFileName(filename);
         try
         {
-
-            o = new FileOutputStream(this.GetFilename(CustomConfigurationFileName));
-            this.GetCustomProperties().store(o, null);
+            o = new FileOutputStream(fullfilename);
+            prop.store(o, null);
         }
         catch (FileNotFoundException ex)
         {
