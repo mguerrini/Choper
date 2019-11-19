@@ -70,7 +70,7 @@ public class Display
         String num = String.format("%.02f", value);
         int curLen = this.CurrentLenLine1;
         this.CurrentLenLine1 = ("Saldo: $ " + num).length();
-
+        
         while ((num.length() + 10) < curLen)
         {
             num += " ";

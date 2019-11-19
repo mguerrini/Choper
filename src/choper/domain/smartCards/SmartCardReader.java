@@ -51,6 +51,7 @@ public class SmartCardReader implements ISmartCardReader
     }
     
     // <editor-fold defaultstate="collapsed" desc="-- Open / Close --">
+    
     @Override
     public void Connect()
     {
@@ -84,6 +85,8 @@ public class SmartCardReader implements ISmartCardReader
     }
 
     // </editor-fold>
+    
+    
     private void Run()
     {
         TerminalFactory factory = TerminalFactory.getDefault();
@@ -392,6 +395,11 @@ public class SmartCardReader implements ISmartCardReader
         }
     }
 
+    
+    
+    
+    
+    
     private byte[] ConvertToBytes(float value)
     {
         //4 bytes parte entera 1 bytes parte decimal

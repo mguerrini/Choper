@@ -169,6 +169,44 @@ public class TaskQueue //: ITaskQueue
             this.WorkerStart();
         }
     }
+    
+    public void Enqueue(Object task, RemovePredicate remove)
+    {
+        if (this.IsDisposing)
+        {
+            return;
+        }
+
+        int count = 0;
+
+        synchronized (this.Tasks)
+        {
+            List<Integer> toRemoveIndexes = new ArrayList<>();
+            
+            for(int i=0; i<this.Tasks.size(); i++)
+            {
+                boolean toRemove = remove.MustRemove(this.Tasks.get(i), i);
+                if (toRemove)
+                    toRemoveIndexes.add(i);
+            }
+            
+            for (int index : toRemoveIndexes)
+            {
+                this.Tasks.remove(index);
+                this.Counter--;
+            }
+            
+            this.Counter++;
+            this.Tasks.addLast(task);
+
+            count = this.Tasks.size();
+        }
+
+        if (!this.isPaused)
+        {
+            this.WorkerStart();
+        }
+    }
 
     public void Clear()
     {
