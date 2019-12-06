@@ -8,6 +8,11 @@ package choper;
 import choper.domain.ChoperMachine;
 import choper.domain.ChoperStatusType;
 import choper.domain.Environment;
+import choper.domain.flowSensors.FlowSensorProvider;
+import choper.domain.flowSensors.IFlowSensor;
+import choper.domain.flowSensors.ManualFlowSensor;
+import choper.domain.smartCards.ICardReader;
+import choper.domain.smartCards.ManualCardReader;
 import choper.platform.ConfigurationProvider;
 import choper.platform.strings.StringUtil;
 import java.io.BufferedReader;
@@ -124,6 +129,10 @@ public class ChoperConsole
                 else if (cmd.equalsIgnoreCase("loglevel"))
                 {
                     System.out.println("Log Level: " + Logger.getGlobal().getLevel());
+                }
+                else if (cmd.equalsIgnoreCase("test"))
+                {
+                    this.ProcessTestCommands(split);
                 }
                 else
                 {
@@ -323,18 +332,69 @@ public class ChoperConsole
 
         if (cmd.equalsIgnoreCase("o") || cmd.equalsIgnoreCase("open"))
         {
-this.Machine.OpenFlowValve();
+            this.Machine.OpenFlowValve();
             System.out.println("Válvula abierta");
         }
         else if (cmd.equalsIgnoreCase("c") || cmd.equalsIgnoreCase("close"))
         {
-this.Machine.CloseFlowValve();
+            this.Machine.CloseFlowValve();
             System.out.println("Válvula cerrada");
         }
         else if (cmd.equalsIgnoreCase("valve"))
         {
-boolean b = this.Machine.IsValveOpen();
-System.out.println("Válvula abierta: " + b);
+            boolean b = this.Machine.IsValveOpen();
+            System.out.println("Válvula abierta: " + b);
         }
     }
+
+    private void ProcessTestCommands(String[] parameters)
+    {
+        String cmd = parameters[0];
+        if (parameters.length < 3)
+        {
+            return;
+        }
+        cmd = parameters[1];
+        String val;
+
+        if (cmd.equalsIgnoreCase("pulses"))
+        {
+            int value = Integer.parseInt(parameters[2]);
+            IFlowSensor sensor = this.Machine.GetFlowSensor();
+
+            if (!ManualFlowSensor.class.isAssignableFrom(sensor.getClass()))
+            {
+                return;
+            }
+
+            ManualFlowSensor mSensor = (ManualFlowSensor) sensor;
+            if (parameters[2].startsWith("+"))
+            {
+                mSensor.IncrementPulses(value);
+            }
+            else
+            {
+                mSensor.UpdatePulses(value);
+            }
+        }
+        else if (cmd.equalsIgnoreCase("insert"))
+        {
+            float valueAdd = Float.parseFloat(parameters[2]);
+            ICardReader reader = this.Machine.GetCardReader();
+
+            if (!ManualCardReader.class.isAssignableFrom(reader.getClass()))
+            {
+                return;
+            }
+
+            ManualCardReader mReader = (ManualCardReader) reader;
+            mReader.InsertCard(valueAdd);
+        }
+        else
+        {
+            System.out.println("Comando inválido");
+        }
+
+    }
+
 }

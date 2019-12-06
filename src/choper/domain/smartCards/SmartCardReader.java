@@ -15,8 +15,9 @@ import javax.smartcardio.*;
 /**
  *
  * @author max22
+ * Hacerlo asincronico
  */
-public class SmartCardReader implements ISmartCardReader
+public class SmartCardReader implements ICardReader
 {
     public IEvent<EventArgs> CardInserted;
     public IEvent<EventArgs> CardRemoved;
@@ -251,6 +252,7 @@ public class SmartCardReader implements ISmartCardReader
         return this.IsCardPresent;
     }
 
+        ///Deberia ser asincrónico
     @Override
     public boolean SetBalance(float amount)
     {
@@ -294,7 +296,7 @@ public class SmartCardReader implements ISmartCardReader
         }
     }
 
-    @Override
+        ///Deberia ser asincrónico
     public boolean AddBalance(float amount)
     {
         if (this.ActiveCard == null)
@@ -322,7 +324,7 @@ public class SmartCardReader implements ISmartCardReader
         }
     }
 
-    @Override
+        ///Deberia ser asincrónico
     public boolean SubtractBalance(float amount)
     {
         if (this.ActiveCard == null)
@@ -349,7 +351,7 @@ public class SmartCardReader implements ISmartCardReader
             return false;
         }
     }
-
+    
     @Override
     public float GetBalance()
     {

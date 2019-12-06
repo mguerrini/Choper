@@ -12,7 +12,7 @@ import choper.platform.events.IEvent;
  *
  * @author mguerrini
  */
-public interface ISmartCardReader
+public interface ICardReader
 {
     IEvent<EventArgs> GetCardInsertedEvent();
 
@@ -30,11 +30,11 @@ public interface ISmartCardReader
 
     boolean IsCardPresent();
 
-    boolean AddBalance(float amount);
-
     float GetBalance();
 
     boolean SetBalance(float amount);
 
-    boolean SubtractBalance(float amount);
+//    boolean SubtractBalance(float amount);
+//    boolean AddBalance(float amount);
+
 }

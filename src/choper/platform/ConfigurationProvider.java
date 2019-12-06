@@ -366,6 +366,11 @@ public class ConfigurationProvider
         return this.GetBool(modulo + "." + key);
     }
 
+    public Boolean GetBool(String modulo, String key, String subKey)
+    {
+        return this.GetBool(modulo + "." + key + "_" + subKey);
+    }
+
     public Boolean GetBool(String key)
     {
         if (this.GetProperties().containsKey(key))

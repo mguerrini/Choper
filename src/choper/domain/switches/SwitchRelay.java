@@ -22,9 +22,9 @@ public class SwitchRelay implements ISwitch
     public void Init()
     {
         Environment.Configure();
-        this.GpioNumber = ConfigurationProvider.Instance.GetInt(this.getClass(), "GpioNumber");
+        this.GpioNumber = ConfigurationProvider.Instance.GetInt("Switch", "Relay", "GpioNumber");
         System.out.println("Gpio Number: " + this.GpioNumber);
-        this.Swap = ConfigurationProvider.Instance.GetBool(this.getClass(), "Swap");
+        this.Swap = ConfigurationProvider.Instance.GetBool("Switch", "Relay", "Swap");
         System.out.println("Swap: " + this.Swap);
 
         if (Environment.IsRaspberryPiPlatform())

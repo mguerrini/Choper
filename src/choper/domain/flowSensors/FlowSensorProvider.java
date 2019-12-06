@@ -5,6 +5,8 @@
  */
 package choper.domain.flowSensors;
 
+import choper.platform.ConfigurationProvider;
+
 /**
  *
  * @author mguerrini
@@ -19,7 +21,19 @@ public class FlowSensorProvider
     {
         if (this.SingleInstance == null)
         {
-            this.SingleInstance = new FlowSensorYFS201b();
+            String cardType = ConfigurationProvider.Instance.GetString("FlowSensor", "Type");
+            switch (cardType)
+            {
+                case "YFS201b":
+                    this.SingleInstance = new FlowSensorYFS201b();
+                    break;
+
+                case "Manual":
+                default:
+                    this.SingleInstance = new ManualFlowSensor();
+                    break;
+
+            }
         }
 
         return this.SingleInstance;

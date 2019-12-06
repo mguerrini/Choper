@@ -6,7 +6,6 @@
 package choper.domain;
 
 import choper.domain.switches.ISwitch;
-import choper.domain.smartCards.ISmartCardReader;
 import choper.domain.moneyReaders.IMoneyReaderMachine;
 import choper.domain.flowSensors.IFlowSensor;
 import choper.domain.displays.IDisplay16x2;
@@ -21,6 +20,7 @@ import choper.platform.events.EventArgs;
 import choper.platform.threading.TaskQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import choper.domain.smartCards.ICardReader;
 
 /**
  *
@@ -31,11 +31,11 @@ public class ChoperMachine
     private Display Display;
     private IFlowSensor FlowSensor;
     private IMoneyReaderMachine BillReader;
-    private ISmartCardReader SmartCardReader;
+    private ICardReader CardReader;
     private ISwitch SwitchFlowValve;
 
     private float LiterPrice = 100; //precio del litro de cerveza
-    private int UpdateVolumeWhenGreaterThan = 50; //cm3
+    private int UpdateVolumeWhenGreaterThan = 10; //cm3
     private long WriteBalanceFrequency = 1000; //milisegundos
 
     private TaskQueue OperationTask;
@@ -52,16 +52,21 @@ public class ChoperMachine
         this.Status = ChoperStatusType.Initial;
     }
 
-    public boolean IsSmartCardPresent()
-    {
-        return this.SmartCardReader.IsCardPresent();
-    }
-
     public ChoperStatusType GetStatus()
     {
         return this.Status;
     }
 
+    public IFlowSensor GetFlowSensor()
+    {
+        return this.FlowSensor;
+    }
+
+    public ICardReader GetCardReader()
+    {
+        return this.CardReader;
+    }
+    
     // <editor-fold defaultstate="collapsed" desc="--- Init / Connect / Disconnect / Reset ---">
     public void Init()
     {
@@ -87,7 +92,7 @@ public class ChoperMachine
         {
             this.FlowSensor = FlowSensorProvider.Instance.Get();
             this.BillReader = MoneyReaderMachineProvider.Instance.Get();
-            this.SmartCardReader = SmartCardReaderProvider.Instance.Get();
+            this.CardReader = CardReaderProvider.Instance.Get();
             this.SwitchFlowValve = SwitchProvider.Instance.Get();
 
             this.Display.ShowMessage("Caudalímetro...");
@@ -104,11 +109,11 @@ public class ChoperMachine
             this.Display.ShowMessage("Monedero: OK");
             Thread.sleep(200);
 
-            this.Display.ShowMessage("Lector Chip...");
-            this.SmartCardReader.Init();
-            this.SmartCardReader.GetCardInsertedEvent().Subscribe(this::OnCardInserted);
-            this.SmartCardReader.GetCardRemovedEvent().Subscribe(this::OnCardRemoved);
-            this.Display.ShowMessage("Lector Chip: OK");
+            this.Display.ShowMessage("Lector Tarjeta...");
+            this.CardReader.Init();
+            this.CardReader.GetCardInsertedEvent().Subscribe(this::OnCardInserted);
+            this.CardReader.GetCardRemovedEvent().Subscribe(this::OnCardRemoved);
+            this.Display.ShowMessage("Lector Tarjeta: OK");
             Thread.sleep(200);
 
             this.Display.ShowMessage("Válvula...");
@@ -130,7 +135,7 @@ public class ChoperMachine
         this.SwitchFlowValve.OpenContacts();
 
         this.BillReader.Connect();
-        this.SmartCardReader.Connect();
+        this.CardReader.Connect();
 
         this.Status = ChoperStatusType.Ready;
 
@@ -141,7 +146,7 @@ public class ChoperMachine
     {
         this.SwitchFlowValve.OpenContacts();
 
-        this.SmartCardReader.Disconnect();
+        this.CardReader.Disconnect();
         this.BillReader.Disconnect();
         this.FlowSensor.Disconnect();
         this.FlowSensor.Dispose();
@@ -159,8 +164,8 @@ public class ChoperMachine
         this.BillReader.GetTicketAcceptedEvent().UnSubscribe(this::OnBillTicketAccepted);
         this.BillReader.GetTicketRejectedEvent().UnSubscribe(this::OnBillTicketRejected);
 
-        this.SmartCardReader.GetCardInsertedEvent().UnSubscribe(this::OnCardInserted);
-        this.SmartCardReader.GetCardRemovedEvent().UnSubscribe(this::OnCardRemoved);
+        this.CardReader.GetCardInsertedEvent().UnSubscribe(this::OnCardInserted);
+        this.CardReader.GetCardRemovedEvent().UnSubscribe(this::OnCardRemoved);
 
         this.ReInit();
 
@@ -203,7 +208,7 @@ public class ChoperMachine
         this.Display.UpdateParameters();
         this.FlowSensor.UpdateParameters();
         this.BillReader.UpdateParameters();
-        this.SmartCardReader.UpdateParameters();
+        this.CardReader.UpdateParameters();
         this.SwitchFlowValve.UpdateParameters();
     }
 
@@ -308,12 +313,7 @@ public class ChoperMachine
         op.Operation = OperationType.VolumeChanged;
         op.FlowSensorData = data;
 
-        //elimino todas las operaciones anteriores de cambio de volumen
-        this.OperationTask.Enqueue(op, (task, index) ->
-        {
-            ChoperOperation innerOp = (ChoperOperation) task;
-            return innerOp.Operation == OperationType.VolumeChanged;
-        });
+        this.OperationTask.Enqueue(op);
     }
 
     private void OnVolumeChange(FlowSensorEventArgs data)
@@ -323,23 +323,38 @@ public class ChoperMachine
         {
             if (data.EventNumber == 1)
             {
-                this.UpdateOnFirstVolumeChanged(data);
+                //es el primer evento, lo registro
+                this.LastUpdatedTimeInMilliseconds = data.CurrentTimeMillis;
+
+                if (data.TotalVolume <= 0)
+                {
+                    return;
+                }
+                
+                this.LastUpdatedVolumen = data.TotalVolume;
+
+                //muestro el dinero restante
+                boolean ok = this.UpdateBalanceForVolume(data.TotalVolume);
+
+                this.Display.ShowVolume(data.TotalVolume);
                 return;
             }
 
-            // this.VerifyBalance();
+            //actualizo el volumen
+            if ((data.TotalVolume - this.LastUpdatedVolumen) > this.UpdateVolumeWhenGreaterThan)
+            {
+                //actualizo el volumen
+                this.LastUpdatedVolumen = data.TotalVolume;
+                this.Display.UpdateVolume(data.TotalVolume);
+            }
+
+            // actualizo el balance
             if ((data.CurrentTimeMillis - this.LastUpdatedTimeInMilliseconds) >= this.WriteBalanceFrequency)
             {
-                this.UpdateOnNonFirstVolumeChanged(data);
-            }
-            else
-            {
-                if ((data.TotalVolume - this.LastUpdatedVolumen) > this.UpdateVolumeWhenGreaterThan)
-                {
-                    //actualizo el volumen
-                    this.LastUpdatedVolumen = data.TotalVolume;
-                    this.Display.UpdateVolume(data.TotalVolume);
-                }
+                this.UpdateBalanceForVolume(data.TotalVolume);
+                
+                //actualizo el volumen
+                this.LastUpdatedTimeInMilliseconds = data.CurrentTimeMillis;
             }
 
             this.VerifyBalance();
@@ -356,45 +371,87 @@ public class ChoperMachine
             System.out.println("Flow Sensor - EventNumber = " + data.EventNumber);
             System.out.println("Flow Sensor - Pulses Value = " + data.Pulses);
             System.out.println("Flow Sensor - Total Volume = " + data.TotalVolume);
-            //System.out.println("Flow Sensor - Delta Volume = " + data.DeltaVolume);
         }
     }
 
-    private void UpdateOnFirstVolumeChanged(FlowSensorEventArgs data)
+    private boolean UpdateBalanceForVolume(float totalVolume)
     {
-        //es el primer evento, lo registro
-        this.LastUpdatedTimeInMilliseconds = data.CurrentTimeMillis;
-        if (data.TotalVolume <= 0)
-        {
-            return;
-        }
+        //calculo el monto total consumido
+        float totalAmount = this.CalculateAmountForVolume(totalVolume);
+        //le resto el monto ya cobrado
+        float toSubstract = totalAmount - this.TotalMoneyConsumed;
 
-        this.LastUpdatedVolumen = data.TotalVolume;
+        boolean ok = false;
+        float currMoney = this.CardReader.GetBalance();
+
+        if (currMoney <= toSubstract)
+        {
+            ok = this.CardReader.SetBalance(0f);
+            this.TotalMoneyConsumed += currMoney;
+        }
+        else
+        //escribo en la tarjeta
+        {
+            float balance = this.CardReader.GetBalance();
+            ok = this.CardReader.SetBalance(balance - toSubstract);
+            this.TotalMoneyConsumed += toSubstract;
+        }
 
         //muestro el dinero restante
-        boolean ok = this.UpdateSaldo(data.TotalVolume);
+        currMoney = this.CardReader.GetBalance();
 
-        this.Display.ShowVolume(data.TotalVolume);
+        //muestro el dinero actual y el volumen
+        this.Display.UpdateBalance(currMoney);
 
+        System.out.println("Monto Total $ " + totalAmount);
+        System.out.println("Monto a Descontar $ " + toSubstract);
+        System.out.println("Saldo $ " + currMoney);
+
+        return ok;
     }
 
-    private void UpdateOnNonFirstVolumeChanged(FlowSensorEventArgs data)
+    private float CalculateAmountForVolume(float volumen)
     {
-        this.LastUpdatedTimeInMilliseconds = data.CurrentTimeMillis;
+        //1000 cm3    -----> LiterPrice
+        //volumen cm3 -----> X => x = (volumen * LiterPrice) / 1000
 
-        //actualizo el saldo
-        this.UpdateSaldo(data.TotalVolume);
+        float amount = (volumen * this.LiterPrice) / 1000;
+        return amount;
+    }
 
-        //actualizo el volumen
-        this.LastUpdatedVolumen = data.TotalVolume;
-        this.Display.UpdateVolume(data.TotalVolume);
+    private boolean VerifyBalance()
+    {
+        if (this.Status == ChoperStatusType.Ready)
+        {
+            float saldo = this.CardReader.GetBalance();
+
+            if (saldo > 0)
+            {
+                this.SwitchFlowValve.CloseContacts(); //activo el switch
+                System.out.println("Saldo disponible.");
+                return true;
+            }
+            else
+            {
+                this.SwitchFlowValve.OpenContacts();//activo el switch
+                System.out.println("Saldo insuficiente.");
+                return false;
+            }
+        }
+
+        return true;
     }
 
     //</editor-fold>
     //<editor-fold desc="--- Smartcard ---">
+    public boolean IsSmartCardPresent()
+    {
+        return this.CardReader.IsCardPresent();
+    }
+
     public void CleanCardMoney()
     {
-        if (!this.SmartCardReader.IsCardPresent())
+        if (!this.CardReader.IsCardPresent())
         {
             Logger.getGlobal().info("Tarjeta no insertada.");
             return;
@@ -409,17 +466,17 @@ public class ChoperMachine
 
     public Float GetBalance()
     {
-        if (!this.SmartCardReader.IsCardPresent())
+        if (!this.CardReader.IsCardPresent())
         {
             return null;
         }
 
-        return this.SmartCardReader.GetBalance();
+        return this.CardReader.GetBalance();
     }
 
     public void AddMoney(Float value)
     {
-        if (!this.SmartCardReader.IsCardPresent())
+        if (!this.CardReader.IsCardPresent())
         {
             Logger.getGlobal().info("Tarjeta no insertada.");
             return;
@@ -435,7 +492,7 @@ public class ChoperMachine
 
     public void SubstractMoney(Float value)
     {
-        if (!this.SmartCardReader.IsCardPresent())
+        if (!this.CardReader.IsCardPresent())
         {
             Logger.getGlobal().info("Tarjeta no insertada.");
             return;
@@ -457,7 +514,7 @@ public class ChoperMachine
 
             this.InitializeForCardInserted();
             this.BillReader.Enabled();
-            float currBalance = this.SmartCardReader.GetBalance();
+            float currBalance = this.CardReader.GetBalance();
 
             ChoperOperation op = new ChoperOperation();
             op.Operation = OperationType.CardInserted;
@@ -504,78 +561,85 @@ public class ChoperMachine
         this.LastUpdatedTimeInMilliseconds = 0l;
     }
 
-    private boolean UpdateSaldo(float totalVolume)
+
+    /*
+    private void EnqueueCardTask(ChoperOperation op)
     {
-        //calculo el monto total consumido
-        float totalAmount = this.CalculateAmountFor(totalVolume);
-        //le resto el monto ya cobrado
-        float toSubstract = totalAmount - this.TotalMoneyConsumed;
-
-        boolean ok = false;
-        float currMoney = this.SmartCardReader.GetBalance();
-
-        if (currMoney <= toSubstract)
+        //elimino todas las operaciones anteriores de cambio de volumen
+        if (op.Operation == OperationType.VolumeChanged)
         {
-            ok = this.SmartCardReader.SetBalance(0f);
-            this.TotalMoneyConsumed += currMoney;
+            this.CardTask.Enqueue(op, (task, index) ->
+            {
+                ChoperOperation innerOp = (ChoperOperation) task;
+                return innerOp.Operation == OperationType.VolumeChanged;
+            });
         }
         else
-        //escribo en la tarjeta
         {
-            ok = this.SmartCardReader.SubtractBalance(toSubstract);
-            this.TotalMoneyConsumed += toSubstract;
+            this.CardTask.Enqueue(op);
         }
-
-        //muestro el dinero restante
-        currMoney = this.SmartCardReader.GetBalance();
-
-        //muestro el dinero actual y el volumen
-        this.Display.UpdateBalance(currMoney);
-
-        System.out.println("Monto Total $ " + totalAmount);
-        System.out.println("Monto a Descontar $ " + toSubstract);
-        System.out.println("Saldo $ " + currMoney);
-
-        return ok;
     }
+    
 
-    private float CalculateAmountFor(float volumen)
+    private void DoCardTask(Object context, Object data)
     {
-        //1000 cm3    -----> LiterPrice
-        //volumen cm3 -----> X => x = (volumen * LiterPrice) / 1000
+        ChoperOperation op = (ChoperOperation) data;
 
-        float amount = (volumen * this.LiterPrice) / 1000;
-        return amount;
-    }
-
-    private boolean VerifyBalance()
-    {
-        if (this.Status == ChoperStatusType.Ready)
+        try
         {
-            float saldo = this.SmartCardReader.GetBalance();
+            switch (op.Operation)
+            {
+                case CardInserted:
+                case CardRemoved:
+                    break;
+                case AddMoney:
+                    boolean addBal = this.CardReader.AddBalance(op.Amount);
 
-            if (saldo > 0)
-            {
-                this.SwitchFlowValve.CloseContacts(); //activo el switch
-                System.out.println("Saldo disponible.");
-                return true;
-            }
-            else
-            {
-                this.SwitchFlowValve.OpenContacts();//activo el switch
-                System.out.println("Saldo insuficiente.");
-                return false;
+                    if (addBal)
+                    {
+                        op.Operation = OperationType.UpdateDisplayBalance;
+                        this.OperationTask.Enqueue(op);
+                    }
+
+                    break;
+                case SubMoney:
+                    boolean subBal = this.CardReader.SubtractBalance(op.Amount);
+
+                    if (subBal)
+                    {
+                        float balance = this.CardReader.GetBalance();
+                        this.OperationTask.Enqueue(op);
+                    }
+
+                    break;
+
+                case ClearMoney:
+                    boolean cleanBal = this.CardReader.SetBalance(0f);
+
+                    if (cleanBal)
+                    {
+                        float balance = this.CardReader.GetBalance();
+                        this.OperationTask.Enqueue(op);
+                    }
+
+                    break;
+                case VolumeChanged:
+                    break;
+                default:
+                    break;
             }
         }
-
-        return true;
+        catch (Exception ex)
+        {
+            System.out.println(ex);
+        }
     }
-
+     */
     //</editor-fold>
     //<editor-fold desc="--- Bill Reader ---">
     private void OnBillTicketReady(Object source, Integer bill)
     {
-        if (this.SmartCardReader.IsCardPresent())
+        if (this.CardReader.IsCardPresent())
         {
             this.BillReader.Accept();
         }
@@ -605,7 +669,7 @@ public class ChoperMachine
     private void DoTask(Object context, Object data)
     {
         ChoperOperation op = (ChoperOperation) data;
-
+        float balance;
         try
         {
             switch (op.Operation)
@@ -624,40 +688,68 @@ public class ChoperMachine
                     break;
 
                 case AddMoney:
-                    boolean addBal = this.SmartCardReader.AddBalance(op.Amount);
+                    balance = this.CardReader.GetBalance();
+                    boolean addBal = this.CardReader.SetBalance(op.Amount + balance);
 
-                    if (addBal && !op.Silent)
+                    if (addBal)
                     {
-                        float balance = this.SmartCardReader.GetBalance();
-                        this.Display.UpdateBalance(balance);
+                        if (!op.Silent)
+                        {
+                            balance = this.CardReader.GetBalance();
+                            this.Display.UpdateBalance(balance);
+                        }
                     }
 
                     this.VerifyBalance();
+
                     break;
-                case SubMoney:
-                    boolean subBal = this.SmartCardReader.SubtractBalance(op.Amount);
 
-                    if (subBal && !op.Silent)
+                case SubMoney:
+                    balance = this.CardReader.GetBalance();
+                    boolean subBal = this.CardReader.SetBalance(op.Amount - balance);
+
+                    if (subBal)
                     {
-                        float balance = this.SmartCardReader.GetBalance();
-                        this.Display.UpdateBalance(balance);
+                        if (!op.Silent)
+                        {
+                            balance = this.CardReader.GetBalance();
+                            this.Display.UpdateBalance(balance);
+                        }
                     }
+
                     this.VerifyBalance();
+
                     break;
 
                 case ClearMoney:
-                    boolean cleanBal = this.SmartCardReader.SetBalance(0f);
+                    boolean cleanBal = this.CardReader.SetBalance(0f);
 
-                    if (cleanBal && !op.Silent)
+                    if (cleanBal)
                     {
-                        float balance = this.SmartCardReader.GetBalance();
+                        if (!op.Silent)
+                        {
+                            balance = this.CardReader.GetBalance();
+                            this.Display.UpdateBalance(balance);
+                        }
+                    }
+
+                    this.VerifyBalance();
+
+                    break;
+
+                case VolumeChanged:
+                    this.OnVolumeChange(op.FlowSensorData);
+                    break;
+
+                case UpdateDisplayBalance:
+                    if (!op.Silent)
+                    {
+                        balance = this.CardReader.GetBalance();
                         this.Display.UpdateBalance(balance);
                     }
                     this.VerifyBalance();
                     break;
-                case VolumeChanged:
-                    this.OnVolumeChange(op.FlowSensorData);
-                    break;
+
                 default:
                     break;
             }
@@ -674,5 +766,4 @@ public class ChoperMachine
         String msg = String.format("Litro: $ %.02f", this.LiterPrice);
         this.Display.ShowMessage(msg);
     }
-
 }

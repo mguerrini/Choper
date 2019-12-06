@@ -172,6 +172,7 @@ public class I2CWiringpiLCD
             lcd_write((byte) 0x02);
 
             lcd_write((byte) (LCD_FUNCTIONSET | LCD_2LINE | LCD_5x8DOTS | LCD_4BITMODE));
+            //lcd_write((byte) (LCD_FUNCTIONSET | LCD_2LINE | LCD_5x8DOTS | LCD_8BITMODE));
             lcd_write((byte) (LCD_DISPLAYCONTROL | LCD_DISPLAYON));
             lcd_write((byte) (LCD_CLEARDISPLAY));
             lcd_write((byte) (LCD_ENTRYMODESET | LCD_ENTRYLEFT));
@@ -216,6 +217,7 @@ public class I2CWiringpiLCD
     {
         lcd_write_four_bits((byte) (mode | (cmd & 0xF0)));
         lcd_write_four_bits((byte) (mode | ((cmd << 4) & 0xF0)));
+        
     }
 
     // write a command to lcd

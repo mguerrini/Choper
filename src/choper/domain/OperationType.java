@@ -17,4 +17,5 @@ public enum OperationType
     VolumeChanged,
     CardInserted, 
     CardRemoved,
+    UpdateDisplayBalance,
 }

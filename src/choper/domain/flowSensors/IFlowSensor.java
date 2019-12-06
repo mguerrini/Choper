@@ -24,7 +24,6 @@ public interface IFlowSensor
 
     void SetCalibrationFactor(int factor);
 
-
     void UpdateParameters();
 
     float GetVolume();

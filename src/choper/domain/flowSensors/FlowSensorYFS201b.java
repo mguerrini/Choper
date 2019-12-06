@@ -18,14 +18,12 @@ import java.util.TimerTask;
  *
  * @author mguerrini
  */
-public class FlowSensorYFS201b implements IFlowSensor
+public class FlowSensorYFS201b extends FlowSensorBase
 {
-    public IEvent<FlowSensorEventArgs> VolumeChanged = new Event<FlowSensorEventArgs>("FlowSensorYFS201b->VolumeChanged");
-
     private boolean RaiseEventAsync = true;
     private float PulsesPerLiter = 450;
     private int NotifyFrequency = 500;
-    private int Gpio17 = 0;
+    private int GpioNumber = 0;
 
     private Timer NotifierWorker;
 
@@ -40,30 +38,23 @@ public class FlowSensorYFS201b implements IFlowSensor
         this.FlowCounter++;
     }
 
-    public IEvent<FlowSensorEventArgs> GetVolumeChangedEvent()
-    {
-        return this.VolumeChanged;
-    }
-
     @Override
     public void Init()
     {
         Environment.Configure();
 
-        this.Gpio17 = ConfigurationProvider.Instance.GetInt("FlowSensor", "GpioNumber");
-        System.out.println("Gpio Number: " + this.Gpio17);
-        this.RaiseEventAsync = ConfigurationProvider.Instance.GetBool("FlowSensor", "RaiseEventAsync");
-        System.out.println("Raise Event Async: " + this.RaiseEventAsync);
+        this.GpioNumber = ConfigurationProvider.Instance.GetInt("FlowSensor", "GpioNumber");
+        System.out.println("Gpio Number: " + this.GpioNumber);
 
         this.UpdateParameters();
 
         if (Environment.IsRaspberryPiPlatform())
         {
-            Gpio.pinMode(Gpio17, Gpio.INPUT);
-            Gpio.pullUpDnControl(Gpio17, Gpio.PUD_UP);
+            Gpio.pinMode(GpioNumber, Gpio.INPUT);
+            Gpio.pullUpDnControl(GpioNumber, Gpio.PUD_UP);
 
-            Gpio.wiringPiClearISR(Gpio17);
-            Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
+            Gpio.wiringPiClearISR(GpioNumber);
+            Gpio.wiringPiISR(GpioNumber, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
         }
     }
 
@@ -72,8 +63,6 @@ public class FlowSensorYFS201b implements IFlowSensor
     {
         if (Environment.IsRaspberryPiPlatform())
         {
-            //Gpio.wiringPiClearISR(Gpio17);
-            //Gpio.wiringPiISR(Gpio17, Gpio.INT_EDGE_FALLING, this::IncrementFlowCounter);
             this.StartTimeMillis = Gpio.millis();
         }
         else
@@ -103,11 +92,6 @@ public class FlowSensorYFS201b implements IFlowSensor
     @Override
     public void Disconnect()
     {
-        //if (Environment.IsRaspberryPiPlatform())
-        //{
-        //    Gpio.wiringPiClearISR(Gpio17);
-        //}
-
         if (this.NotifierWorker != null)
         {
             this.NotifierWorker.cancel();
@@ -120,7 +104,7 @@ public class FlowSensorYFS201b implements IFlowSensor
     {
         if (Environment.IsRaspberryPiPlatform())
         {
-            Gpio.wiringPiClearISR(Gpio17);
+            Gpio.wiringPiClearISR(GpioNumber);
         }
     }
 
@@ -135,6 +119,8 @@ public class FlowSensorYFS201b implements IFlowSensor
     @Override
     public void UpdateParameters()
     {
+        this.RaiseEventAsync = ConfigurationProvider.Instance.GetBool("FlowSensor", "RaiseEventAsync");
+        System.out.println("Raise Event Async: " + this.RaiseEventAsync);
         this.PulsesPerLiter = ConfigurationProvider.Instance.GetInt("FlowSensor", "PulsesPerLiter");
         System.out.println("PulsesPerLiter: " + this.PulsesPerLiter);
         this.NotifyFrequency = ConfigurationProvider.Instance.GetInt("FlowSensor", "NotifyFrequency");
@@ -159,6 +145,7 @@ public class FlowSensorYFS201b implements IFlowSensor
         args.TotalVolume = (currValue * 1000) / this.PulsesPerLiter;
         args.DeltaVolume = (delta * 1000) / this.PulsesPerLiter;
         args.StartTimeMillis = this.StartTimeMillis;
+        
         if (Environment.IsRaspberryPiPlatform())
         {
             args.CurrentTimeMillis = Gpio.millis();
@@ -179,11 +166,11 @@ public class FlowSensorYFS201b implements IFlowSensor
          */
         if (this.RaiseEventAsync)
         {
-            ((Event<FlowSensorEventArgs>) this.VolumeChanged).InvokeAsync(this, args);
+            this.RaiseVolumeChangedAsync(args);
         }
         else
         {
-            ((Event<FlowSensorEventArgs>) this.VolumeChanged).Invoke(this, args);
+            this.RaiseVolumeChanged(args);
         }
     }
 

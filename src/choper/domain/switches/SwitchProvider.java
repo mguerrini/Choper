@@ -5,6 +5,8 @@
  */
 package choper.domain.switches;
 
+import choper.platform.ConfigurationProvider;
+
 /**
  *
  * @author mguerrini
@@ -19,7 +21,19 @@ public class SwitchProvider
     {
         if (this.SingleInstance == null)
         {
-            this.SingleInstance = new SwitchRelay();
+            String switchType = ConfigurationProvider.Instance.GetString("Switch", "Type");
+            switch (switchType)
+            {
+                case "Relay":
+                    this.SingleInstance = new SwitchRelay();
+                    break;
+
+                case "None":
+                default:
+                    this.SingleInstance = new NoneSwitch();
+                    break;
+
+            }
         }
 
         return this.SingleInstance;

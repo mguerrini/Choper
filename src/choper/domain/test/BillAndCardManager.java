@@ -39,7 +39,7 @@ public class BillAndCardManager
 
     public void Open()
     {
-        this.CardReader = (SmartCardReader) SmartCardReaderProvider.Instance.Get();
+        this.CardReader = (SmartCardReader) CardReaderProvider.Instance.Get();
         this.BillReader = (MoneyReaderMachine) MoneyReaderMachineProvider.Instance.Get();
 
         this.CardReader.CardInserted.Subscribe(this::OnCardInserted);
