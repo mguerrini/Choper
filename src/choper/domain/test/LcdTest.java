@@ -7,16 +7,11 @@ package choper.domain.test;
 
 import choper.domain.displays.I2CLCD;
 import choper.domain.displays.I2CWiringpiLCD;
-import com.pi4j.component.lcd.impl.I2CLcdDisplay;
 import com.pi4j.io.i2c.*;
 import com.pi4j.io.i2c.I2CFactory.UnsupportedBusNumberException;
 import com.pi4j.platform.PlatformAlreadyAssignedException;
 import com.pi4j.util.Console;
-import com.pi4j.wiringpi.*;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 
 /**

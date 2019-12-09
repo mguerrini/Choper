@@ -7,17 +7,11 @@ package choper.domain.test;
 
 import choper.domain.cardReaders.SmartCardReader;
 import choper.domain.cardReaders.CardReaderProvider;
-import choper.Main;
 import choper.domain.moneyReaders.*;
 import choper.platform.events.EventArgs;
-import com.pi4j.component.lcd.impl.GpioLcdDisplay;
-import com.pi4j.wiringpi.Lcd;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
