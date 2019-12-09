@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain.smartCards;
+package choper.domain.cardReaders;
 
 import choper.platform.events.EventArgs;
 import choper.platform.events.IEvent;
@@ -12,7 +12,7 @@ import choper.platform.events.IEvent;
  *
  * @author mguerrini
  */
-public class ManualCardReader extends CardReaderBase
+public class ManualCardReader extends CardReaderBase implements IVirtualCardReader
 {
     private float _currentBalance;
     private boolean _isCardPresent = false;
@@ -62,10 +62,12 @@ public class ManualCardReader extends CardReaderBase
         _currentBalance = amount;
         if (amount <= 0)
         {
+            System.out.println("CardReader - SetBalance: $ 0 - Removing Card");
             this.RemoveCard();
         }
         else
         {
+            System.out.println("CardReader - SetBalance: $ " + amount);
             this.RaiseBalanceChanged();
         }
 
@@ -88,6 +90,7 @@ public class ManualCardReader extends CardReaderBase
 
         _currentBalance = valueAdd;
         _isCardPresent = true;
+        System.out.println("Card Inserted: $ " + valueAdd);
         this.RaiseCardInserted();
     }
 

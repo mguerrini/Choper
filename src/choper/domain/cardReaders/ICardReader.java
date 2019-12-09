@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain.smartCards;
+package choper.domain.cardReaders;
 
 import choper.platform.events.EventArgs;
 import choper.platform.events.IEvent;
@@ -33,8 +33,6 @@ public interface ICardReader
     float GetBalance();
 
     boolean SetBalance(float amount);
-
 //    boolean SubtractBalance(float amount);
 //    boolean AddBalance(float amount);
-
 }

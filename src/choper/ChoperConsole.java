@@ -5,16 +5,12 @@
  */
 package choper;
 
-import choper.domain.ChoperMachine;
-import choper.domain.ChoperStatusType;
-import choper.domain.Environment;
-import choper.domain.flowSensors.FlowSensorProvider;
-import choper.domain.flowSensors.IFlowSensor;
-import choper.domain.flowSensors.ManualFlowSensor;
-import choper.domain.smartCards.ICardReader;
-import choper.domain.smartCards.ManualCardReader;
+import choper.domain.*;
+import choper.domain.cardReaders.*;
+import choper.domain.flowSensors.*;
 import choper.platform.ConfigurationProvider;
 import choper.platform.strings.StringUtil;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -36,14 +32,22 @@ public class ChoperConsole
 
     private ChoperMachine Machine;
     private boolean Finish = false;
-
+    private ChoperController Controller;
+    private ChoperServer Server;
+    
     public void Start()
     {
         Environment.Configure();
 
         this.Machine = new ChoperMachine();
+        this.Controller = new ChoperController(this.Machine);
+        
         this.Machine.Init();
         this.Machine.Connect();
+        
+        //inicio el servidor
+        this.Server = new ChoperServer(this.Controller);
+        this.Server.Start();
 
         String cmdline = "";
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -56,7 +60,9 @@ public class ChoperConsole
                 //ChoperStatusType st = this.Machine.GetStatus();
                 //System.out.println("Status: " + st.toString());
 
-                cmdline = reader.readLine();
+                if (cmdline == "")
+                    cmdline = reader.readLine();
+                
                 this.Finish = "quit".equalsIgnoreCase(cmdline) || "exit".equalsIgnoreCase(cmdline);
 
                 if (this.Finish)
@@ -134,16 +140,24 @@ public class ChoperConsole
                 {
                     this.ProcessTestCommands(split);
                 }
+                else if (cmd.equalsIgnoreCase("insert") || cmd.equalsIgnoreCase("remove"))
+                {
+                    this.ProcessVirtualCardCommands(split);
+                }
                 else
                 {
                     System.out.println("Comando inválido!");
                 }
+                
+                cmdline = "";
             }
             catch (Exception ex)
             {
                 System.out.println(ex);
             }
         }
+        
+        this.Server.Stop();
 
         this.Machine.Disconnect();
     }
@@ -344,6 +358,34 @@ public class ChoperConsole
         {
             boolean b = this.Machine.IsValveOpen();
             System.out.println("Válvula abierta: " + b);
+        }
+    }
+
+    private void ProcessVirtualCardCommands(String[] parameters)
+    {
+        ICardReader reader = this.Machine.GetCardReader();
+
+        if (!IVirtualCardReader.class.isAssignableFrom(reader.getClass()))
+        {
+            return;
+        }
+
+        IVirtualCardReader virtualReader = (IVirtualCardReader) reader;
+        String cmd = parameters[0];
+
+        if (cmd.equalsIgnoreCase("insert"))
+        {
+            float valueAdd = Float.parseFloat(parameters[1]);
+
+            virtualReader.InsertCard(valueAdd);
+        }
+        else if (cmd.equalsIgnoreCase("remove"))
+        {
+            virtualReader.RemoveCard();
+        }
+        else
+        {
+            System.out.println("Comando inválido");
         }
     }
 

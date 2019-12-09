@@ -5,6 +5,7 @@
  */
 package choper.domain;
 
+import choper.domain.cardReaders.CardReaderProvider;
 import choper.domain.switches.ISwitch;
 import choper.domain.moneyReaders.IMoneyReaderMachine;
 import choper.domain.flowSensors.IFlowSensor;
@@ -13,14 +14,13 @@ import choper.domain.flowSensors.FlowSensorEventArgs;
 import choper.domain.displays.*;
 import choper.domain.flowSensors.*;
 import choper.domain.moneyReaders.*;
-import choper.domain.smartCards.*;
 import choper.domain.switches.SwitchProvider;
 import choper.platform.ConfigurationProvider;
 import choper.platform.events.EventArgs;
 import choper.platform.threading.TaskQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import choper.domain.smartCards.ICardReader;
+import choper.domain.cardReaders.ICardReader;
 
 /**
  *
@@ -122,6 +122,8 @@ public class ChoperMachine
             Thread.sleep(200);
             this.Display.ShowMessage("Inic. fin");
             Thread.sleep(200);
+            
+            this.DoUpdateParameters();
 
         }
         catch (InterruptedException ex)

@@ -12,11 +12,11 @@ package choper.domain.switches;
 public class NoneSwitch implements ISwitch
 {
     private boolean _isOpened = true;
-    
+
     @Override
     public void Init()
     {
-        _isOpened = true;
+        this.OpenContacts();
     }
 
     @Override
@@ -35,12 +35,16 @@ public class NoneSwitch implements ISwitch
     public void CloseContacts()
     {
         _isOpened = false;
+        System.out.println("Switch - Closed");
+
     }
 
     @Override
     public void OpenContacts()
     {
         _isOpened = true;
+        System.out.println("Switch - Opened");
+
     }
 
     @Override

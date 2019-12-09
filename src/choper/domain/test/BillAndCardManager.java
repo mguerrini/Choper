@@ -5,9 +5,10 @@
  */
 package choper.domain.test;
 
+import choper.domain.cardReaders.SmartCardReader;
+import choper.domain.cardReaders.CardReaderProvider;
 import choper.Main;
 import choper.domain.moneyReaders.*;
-import choper.domain.smartCards.*;
 import choper.platform.events.EventArgs;
 import com.pi4j.component.lcd.impl.GpioLcdDisplay;
 import com.pi4j.wiringpi.Lcd;

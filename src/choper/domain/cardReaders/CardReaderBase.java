@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain.smartCards;
+package choper.domain.cardReaders;
 
 import choper.platform.events.Event;
 import choper.platform.events.EventArgs;
