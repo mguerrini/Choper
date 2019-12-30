@@ -9,13 +9,26 @@ package choper.domain;
  *
  * @author mguerrini
  */
-public enum OperationType
+public enum OperationType 
 {
     AddMoney,
     SubMoney,
     ClearMoney,
+
+    BuyPint, //por porcentage de pinta
+    BuyLiter,  //por porcentage de litro
+    BuyAmount, //compra por dinero
+    Free, //muestra gratis
+    
     VolumeChanged,
+    UpdateDisplayBalance,
+
+
     CardInserted, 
     CardRemoved,
-    UpdateDisplayBalance,
+    
+    StartSelling,
+    StopSelling, 
 }
+
+

@@ -25,7 +25,7 @@ public class FlowSensorTest
         int setup = Gpio.wiringPiSetup();
         if (setup < 0)
         {
-            System.out.print("No es posible inicializar Wiring Pi");
+            System.out.println("No es posible inicializar Wiring Pi");
         }
         
         Gpio.pinMode(Gpio17,Gpio.INPUT);

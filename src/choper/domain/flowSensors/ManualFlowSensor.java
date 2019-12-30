@@ -32,11 +32,13 @@ public class ManualFlowSensor extends FlowSensorBase
     {
         this.Reset();
         _startTimeMillis = System.currentTimeMillis();
+        System.out.println("Manual FlowSensor - Connected");
     }
 
     @Override
     public void Disconnect()
     {
+        System.out.println("Manual FlowSensor - Disconnected");
     }
 
     @Override
@@ -58,9 +60,14 @@ public class ManualFlowSensor extends FlowSensorBase
     @Override
     public float GetVolume()
     {
-        return 0f;
-    }
+        float volumen = 0;
+        int currValue = _flowCounter;
 
+        volumen = (currValue * 1000) / _pulsesPerLiter;
+
+        return volumen;
+    }
+    
     @Override
     public void Reset()
     {
@@ -106,6 +113,7 @@ public class ManualFlowSensor extends FlowSensorBase
         Logger.getGlobal().info("Flow Sensor - StartTimeMillis = " + args.StartTimeMillis);
         Logger.getGlobal().info("Flow Sensor - CurrentTimeMillis = " + args.CurrentTimeMillis);
          */
+        
         if (_raiseEventAsync)
         {
             this.RaiseVolumeChangedAsync(args);

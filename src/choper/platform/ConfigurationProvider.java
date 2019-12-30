@@ -221,9 +221,31 @@ public class ConfigurationProvider
         this.IsTemporal = false;
     }
 
-    public boolean Exists(String key)
+    public boolean Exists(String module, String key)
     {
-        return this.GetProperties().containsKey(key);
+        return this.GetProperties().containsKey(module + "_" + key);
+    }
+
+    public boolean Exists(String fullkey)
+    {
+        return this.GetProperties().containsKey(fullkey);
+    }
+
+    public List<Entry<String, Object>> GetAll(String module)
+    {
+        List<Entry<String, Object>> all = this.GetAll();
+        List<Entry<String, Object>> output = new ArrayList<>();
+
+        for (Entry<String, Object> entry : all)
+        {
+            if (entry.getKey().startsWith(module + "."))
+            {
+                Entry<String, Object> item = new SimpleEntry<String, Object>(entry.getKey().toString(), entry.getValue());
+                output.add(item);
+            }
+        }
+
+        return output;
     }
 
     public List<Entry<String, Object>> GetAll()
@@ -238,6 +260,40 @@ public class ConfigurationProvider
         }
 
         Collections.sort(output, (c1, c2) -> c1.getKey().compareTo(c2.getKey()));
+
+        return output;
+    }
+
+    public List<Entry<String, Object>> GetAll(String module, String key)
+    {
+        List<Entry<String, Object>> all = this.GetAll();
+        List<Entry<String, Object>> output = new ArrayList<>();
+
+        for (Entry<String, Object> entry : all)
+        {
+            if (entry.getKey().startsWith(module + "." + key + "_") || entry.getKey().equals(module + "." + key))
+            {
+                Entry<String, Object> item = new SimpleEntry<String, Object>(entry.getKey().toString(), entry.getValue());
+                output.add(item);
+            }
+        }
+
+        return output;
+    }
+
+    public List<Entry<String, Object>> GetAll(String module, String key, String subKey)
+    {
+        List<Entry<String, Object>> all = this.GetAll();
+        List<Entry<String, Object>> output = new ArrayList<>();
+
+        for (Entry<String, Object> entry : all)
+        {
+            if (entry.getKey().startsWith(module + "." + key + "_" + subKey + "_") || entry.getKey().equals(module + "." + key + "_" + subKey))
+            {
+                Entry<String, Object> item = new SimpleEntry<String, Object>(entry.getKey().toString(), entry.getValue());
+                output.add(item);
+            }
+        }
 
         return output;
     }
@@ -331,6 +387,11 @@ public class ConfigurationProvider
         return this.GetFloat(this.getClassName(modulo) + "." + key + "_" + subKey);
     }
 
+    public Float GetFloat(String modulo, String key, String subKey)
+    {
+        return this.GetFloat(modulo + "." + key + "_" + subKey);
+    }
+
     public String GetString(String key)
     {
         return this.GetProperties().get(key).toString();
@@ -387,6 +448,30 @@ public class ConfigurationProvider
     public Object Get(String key)
     {
         if (this.GetProperties().containsKey(key))
+        {
+            return this.GetProperties().get(key);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    public Object Get(String module, String key, String subkey)
+    {
+        if (this.GetProperties().containsKey(module + "." + key + "_" + subkey))
+        {
+            return this.GetProperties().get(key);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    public Object Get(String module, String key)
+    {
+        if (this.GetProperties().containsKey(module + "." + key))
         {
             return this.GetProperties().get(key);
         }

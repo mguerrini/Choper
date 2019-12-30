@@ -3,16 +3,17 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain;
+package choper.domain.commands;
+
+import choper.domain.OperationType;
 
 /**
  *
  * @author mguerrini
  */
-public enum ChoperStatusType
+public class ChoperCommand
 {
-    Calibration,
-    Initial,
-    Ready,
-    Working
+    public CommandType Command;
+    
+    public float Parameter;
 }

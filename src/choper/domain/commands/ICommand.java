@@ -3,16 +3,19 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package choper.domain;
+package choper.domain.commands;
 
 /**
  *
  * @author mguerrini
  */
-public enum ChoperStatusType
+public interface ICommand
 {
-    Calibration,
-    Initial,
-    Ready,
-    Working
+    String GetName();
+    
+    void Init(ICommandChannel channel);
+    
+    void Execute();
+    
+    void Reconfigure();
 }

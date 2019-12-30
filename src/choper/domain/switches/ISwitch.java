@@ -17,9 +17,15 @@ public interface ISwitch
 
     boolean IsOpened();
 
+    boolean IsLocked();
+    
     void CloseContacts();
 
     void OpenContacts();
 
+    void Lock();
+    
+    void Unlock();
+    
     void UpdateParameters();
 }

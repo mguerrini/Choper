@@ -9,10 +9,9 @@ package choper.domain;
  *
  * @author mguerrini
  */
-public enum ChoperStatusType
+public enum ChoperSellingType
 {
-    Calibration,
-    Initial,
-    Ready,
-    Working
+    ByVolume,
+    ByAmount,
+    Free
 }

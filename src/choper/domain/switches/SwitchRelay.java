@@ -16,8 +16,9 @@ import com.pi4j.wiringpi.*;
 public class SwitchRelay implements ISwitch
 {
     private int GpioNumber = 1;
-    private boolean IsOpened = true;
+    private boolean _isOpened = true;
     private boolean Swap = false;
+    private boolean _isLocked = false;
 
     public void Init()
     {
@@ -26,6 +27,8 @@ public class SwitchRelay implements ISwitch
         System.out.println("Gpio Number: " + this.GpioNumber);
         this.Swap = ConfigurationProvider.Instance.GetBool("Switch", "Relay", "Swap");
         System.out.println("Swap: " + this.Swap);
+
+        this.Unlock();
 
         if (Environment.IsRaspberryPiPlatform())
         {
@@ -46,7 +49,7 @@ public class SwitchRelay implements ISwitch
         {
             if (this.Swap)
             {
-                return Gpio.digitalRead(GpioNumber) <= Gpio.LOW ;
+                return Gpio.digitalRead(GpioNumber) <= Gpio.LOW;
             }
             else
             {
@@ -54,7 +57,13 @@ public class SwitchRelay implements ISwitch
             }
         }
 
-        return IsOpened;
+        return _isOpened;
+    }
+
+    @Override
+    public boolean IsLocked()
+    {
+        return _isLocked;
     }
 
     @Override
@@ -72,12 +81,27 @@ public class SwitchRelay implements ISwitch
             }
         }
 
-        return !this.IsOpened;
+        return !this._isOpened;
     }
 
     @Override
     public void OpenContacts()
     {
+        if (this.IsLocked())
+        {
+            System.out.println("Switch - Locked");
+            if (this.IsOpened())
+            {
+                System.out.println("Switch - Opened");
+            }
+            else
+            {
+                System.out.println("Switch - Closed");
+            }
+
+            return;
+        }
+
         if (Environment.IsRaspberryPiPlatform())
         {
             if (this.Swap)
@@ -91,21 +115,56 @@ public class SwitchRelay implements ISwitch
             return;
         }
 
-        this.IsOpened = true;
+        this._isOpened = true;
+        System.out.println("Switch - Opened");
     }
 
     @Override
     public void CloseContacts()
     {
+        if (this.IsLocked())
+        {
+            System.out.println("Switch - Locked");
+            if (this.IsOpened())
+            {
+                System.out.println("Switch - Opened");
+            }
+            else
+            {
+                System.out.println("Switch - Closed");
+            }
+
+            return;
+        }
+
         if (Environment.IsRaspberryPiPlatform())
         {
             if (this.Swap)
+            {
                 Gpio.digitalWrite(GpioNumber, Gpio.HIGH);
+            }
             else
+            {
                 Gpio.digitalWrite(GpioNumber, Gpio.LOW);
+            }
         }
 
-        this.IsOpened = false;
+        this._isOpened = false;
+        System.out.println("Switch - Closed");
+    }
+
+    @Override
+    public void Lock()
+    {
+        this._isLocked = true;
+        System.out.println("Switch - Locked");
+    }
+
+    @Override
+    public void Unlock()
+    {
+        _isLocked = false;
+        System.out.println("Switch - Unlocked");
     }
 
 }

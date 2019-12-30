@@ -3,12 +3,11 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/flowSensors/FlowSensorYFS201b.java</file>
-            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/ChoperMachine.java</file>
-            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/ChoperConsole.java</file>
-            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/ChoperController.java</file>
-            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/resources/config.properties</file>
-            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/resources/custom.properties</file>
+            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/switches/SwitchRelay.java</file>
+            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/cores/AutomaticChoperCore.java</file>
+            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/cores/ManualChoperCore.java</file>
+            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/ChoperData.java</file>
+            <file>file:/Users/mguerrini/_Localdata/Personales/Dev/Choper/src/choper/domain/switches/ISwitch.java</file>
         </group>
     </open-files>
 </project-private>

@@ -5,23 +5,17 @@
  */
 package choper.domain;
 
-import choper.domain.flowSensors.FlowSensorEventArgs;
-
 /**
  *
  * @author mguerrini
  */
-public class ChoperOperation
+public class StartSellingData
 {
-    public OperationType Operation;
-
-    public float Volume = 0;
+    public ChoperSellingType OperationType;
     
-    public float Amount = 0;
+    public float LiterPrice;
     
-    public FlowSensorEventArgs FlowSensorData;
+    public float Amount;
     
-    public boolean Silent;
+    public float Volumen;
 }
-
-

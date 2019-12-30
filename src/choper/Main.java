@@ -13,6 +13,8 @@ import choper.domain.test.FlowSensorTest;
 import choper.domain.test.LcdTest;
 import choper.platform.events.*;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,7 +38,7 @@ public class Main
      */
     public static void main(String[] args)
     {
-
+        GetIp();
         try
         {
             Logger.getGlobal().setLevel(Level.INFO);
@@ -52,6 +54,35 @@ public class Main
         catch (Exception ex)
         {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private static void GetIp()
+    {
+        try
+        {
+
+            InetAddress inetAddr = InetAddress.getByName("AR0FVFY40VBHV2J");
+
+            byte[] addr = inetAddr.getAddress();
+
+            // Convert to dot representation
+            String ipAddr = "";
+            for (int i = 0; i < addr.length; i++)
+            {
+                if (i > 0)
+                {
+                    ipAddr += ".";
+                }
+                ipAddr += addr[i] & 0xFF;
+            }
+
+            System.out.println("IP Address: " + ipAddr);
+
+        }
+        catch (UnknownHostException e)
+        {
+            System.out.println("Host not found: " + e.getMessage());
         }
     }
 
