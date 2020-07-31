@@ -7,7 +7,6 @@ package choper;
 
 import choper.domain.*;
 import choper.domain.cardReaders.*;
-import choper.domain.cores.SmartCardChoperCore;
 import choper.domain.flowSensors.*;
 import choper.platform.ConfigurationProvider;
 import choper.platform.strings.StringUtil;
